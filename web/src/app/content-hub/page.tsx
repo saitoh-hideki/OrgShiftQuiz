@@ -7,15 +7,24 @@ import { createClient } from '@supabase/supabase-js'
 
 // Supabaseクライアント
 const createSupabaseClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
-    {
-      auth: {
-        persistSession: false
-      }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+  
+  console.log('Supabaseクライアント作成:', { 
+    url: supabaseUrl, 
+    hasKey: !!supabaseAnonKey,
+    keyLength: supabaseAnonKey?.length || 0
+  })
+  
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    },
+    db: {
+      schema: 'public'
     }
-  )
+  })
 }
 
 let supabase = createSupabaseClient()
@@ -30,6 +39,9 @@ export default function ContentHubPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [isConfigured, setIsConfigured] = useState(false)
+  
+  // 個別のローディング状態
+  const [generatingQuizFor, setGeneratingQuizFor] = useState<string | null>(null)
   
   // クイズプレビュー用の状態
   const [isQuizPreviewOpen, setIsQuizPreviewOpen] = useState(false)
@@ -64,6 +76,7 @@ export default function ContentHubPage() {
   const [newsArticles, setNewsArticles] = useState<any[]>([])
   const [documentItems, setDocumentItems] = useState<any[]>([])
   const [manualDrafts, setManualDrafts] = useState<any[]>([])
+  const [fallbackQuiz, setFallbackQuiz] = useState<any>(null)
 
   // 初期データ読み込み
   useEffect(() => {
@@ -71,7 +84,9 @@ export default function ContentHubPage() {
     if (isConfigured) {
       // Supabaseクライアントを再作成してスキーマキャッシュをリフレッシュ
       refreshSupabaseClient()
+      testDatabaseConnection()
       loadData()
+      checkFallbackQuiz()
     }
   }, [isConfigured])
 
@@ -492,6 +507,7 @@ export default function ContentHubPage() {
     }
     
     setIsLoading(true)
+    setGeneratingQuizFor(articleId) // クイズ生成中のコンテンツを設定
     try {
       const response = await fetch('/api/news-generate-quiz', {
         method: 'POST',
@@ -512,6 +528,7 @@ export default function ContentHubPage() {
       showToast('error', 'クイズの生成に失敗しました')
     } finally {
       setIsLoading(false)
+      setGeneratingQuizFor(null) // クイズ生成中のコンテンツを解除
     }
   }
 
@@ -523,6 +540,7 @@ export default function ContentHubPage() {
     }
     
     setIsLoading(true)
+    setGeneratingQuizFor(documentId) // クイズ生成中のコンテンツを設定
     try {
       // まず、ドキュメントの情報を取得
       const { data: document, error: docError } = await supabase
@@ -572,6 +590,7 @@ export default function ContentHubPage() {
       showToast('error', 'クイズの生成に失敗しました')
     } finally {
       setIsLoading(false)
+      setGeneratingQuizFor(null) // クイズ生成中のコンテンツを解除
     }
   }
 
@@ -581,8 +600,62 @@ export default function ContentHubPage() {
     
     setIsLoading(true)
     try {
-      // クイズをデータベースに保存
-      const { error } = await supabase
+      console.log('クイズ保存開始:', {
+        company_id: TEST_COMPANY_ID,
+        origin: previewSourceType,
+        source_id: previewQuiz.sourceId,
+        title: previewQuiz.title,
+        questions_count: previewQuiz.questions.length
+      })
+
+      // まず、tray_itemsテーブルへのアクセスをテスト
+      const { data: testData, error: testError } = await supabase
+        .from('tray_items')
+        .select('count')
+        .limit(1)
+      
+      if (testError) {
+        console.log('tray_itemsテーブルが利用できません。ローカル保存に切り替えます:', testError)
+        
+        // ローカル保存に切り替え
+        const localQuizData = {
+          id: `local_${Date.now()}`,
+          company_id: TEST_COMPANY_ID,
+          origin: previewSourceType,
+          source_id: previewQuiz.sourceId,
+          title: previewQuiz.title,
+          content: {
+            type: previewSourceType,
+            questions: previewQuiz.questions,
+            metadata: {
+              generated_at: new Date().toISOString(),
+              ai_model: 'stub-v1.0',
+              source_type: previewSourceType,
+              question_count: previewQuiz.questions.length,
+              saved_locally: true
+            }
+          },
+          status: 'draft',
+          created_at: new Date().toISOString()
+        }
+        
+        // ローカルストレージに保存
+        const existingQuizzes = JSON.parse(localStorage.getItem('local_quizzes') || '[]')
+        existingQuizzes.push(localQuizData)
+        localStorage.setItem('local_quizzes', JSON.stringify(existingQuizzes))
+        
+        console.log('ローカル保存完了:', localQuizData)
+        showToast('success', 'クイズをローカルに保存しました。配信ビルダーに移動します。')
+        setIsQuizPreviewOpen(false)
+        setPreviewQuiz(null)
+        
+        // 配信ビルダーページに移動
+        window.location.href = '/dispatch-builder'
+        return
+      }
+
+      // 通常のデータベース保存
+      const { data: insertData, error } = await supabase
         .from('tray_items')
         .insert({
           company_id: TEST_COMPANY_ID,
@@ -594,13 +667,34 @@ export default function ContentHubPage() {
             questions: previewQuiz.questions,
             metadata: {
               generated_at: new Date().toISOString(),
-              ai_model: 'stub-v1.0'
+              ai_model: 'stub-v1.0',
+              source_type: previewSourceType,
+              question_count: previewQuiz.questions.length
             }
           },
           status: 'draft'
         })
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('データベース挿入エラー詳細:', {
+          message: error.message,
+          details: error,
+          hint: error.hint,
+          code: error.code
+        })
+        
+        // エラーの詳細を確認
+        if (error.code === '42501') {
+          throw new Error('データベースの権限が不足しています。管理者に連絡してください。')
+        } else if (error.code === '42P01') {
+          throw new Error('tray_itemsテーブルが見つかりません。データベーススキーマを確認してください。')
+        } else {
+          throw new Error(`データベース挿入エラー: ${error.message}`)
+        }
+      }
+
+      console.log('クイズ保存成功:', insertData)
 
       showToast('success', 'クイズを保存しました。配信ビルダーに移動します。')
       setIsQuizPreviewOpen(false)
@@ -611,7 +705,48 @@ export default function ContentHubPage() {
       
     } catch (error) {
       console.error('クイズ保存エラー:', error)
-      showToast('error', 'クイズの保存に失敗しました')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      
+      // フォールバック: ローカルストレージに一時保存
+      try {
+        const fallbackData = {
+          id: `temp_${Date.now()}`,
+          company_id: TEST_COMPANY_ID,
+          origin: previewSourceType,
+          source_id: previewQuiz.sourceId,
+          title: previewQuiz.title,
+          content: {
+            type: previewSourceType,
+            questions: previewQuiz.questions,
+            metadata: {
+              generated_at: new Date().toISOString(),
+              ai_model: 'stub-v1.0',
+              source_type: previewSourceType,
+              question_count: previewQuiz.questions.length
+            }
+          },
+          status: 'draft',
+          created_at: new Date().toISOString(),
+          is_fallback: true
+        }
+        
+        localStorage.setItem('fallback_quiz', JSON.stringify(fallbackData))
+        console.log('フォールバック保存完了:', fallbackData)
+        
+        showToast('error', `クイズの保存に失敗しましたが、ローカルに一時保存しました。エラー: ${errorMessage}`)
+      } catch (fallbackError) {
+        console.error('フォールバック保存も失敗:', fallbackError)
+        showToast('error', `クイズの保存に失敗しました: ${errorMessage}`)
+      }
+      
+      // より詳細なエラー情報をコンソールに出力
+      if (error instanceof Error) {
+        console.error('エラーの詳細:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -620,6 +755,79 @@ export default function ContentHubPage() {
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  // データベース接続テスト
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('データベース接続テスト開始...')
+      
+      // tray_itemsテーブルへのアクセス権限をテスト
+      console.log('tray_itemsテーブルアクセステスト開始...')
+      const { data: testData, error: testError } = await supabase
+        .from('tray_items')
+        .select('count')
+        .limit(1)
+      
+      if (testError) {
+        console.error('tray_itemsテーブルアクセステスト失敗:', {
+          message: testError.message,
+          details: testError,
+          hint: testError.hint,
+          code: testError.code
+        })
+        
+        // テーブルが存在するかチェック
+        try {
+          const { data: tableInfo, error: tableError } = await supabase
+            .rpc('get_table_info', { table_name: 'tray_items' })
+          
+          if (tableError) {
+            console.log('get_table_info RPCも失敗:', tableError)
+          } else {
+            console.log('テーブル情報:', tableInfo)
+          }
+        } catch (rpcError) {
+          console.log('RPC呼び出しエラー:', rpcError)
+        }
+        
+        showToast('error', `tray_itemsテーブルアクセスエラー: ${testError.message}`)
+      } else {
+        console.log('tray_itemsテーブルアクセステスト成功:', testData)
+      }
+      
+      // 他のテーブルもテスト
+      const { error: newsError } = await supabase
+        .from('news_articles')
+        .select('count')
+        .limit(1)
+      
+      if (newsError) {
+        console.error('news_articlesテーブルアクセステスト失敗:', newsError)
+      } else {
+        console.log('news_articlesテーブルアクセステスト成功')
+      }
+      
+      // 基本的なテーブルアクセステスト（information_schemaは使用しない）
+      console.log('基本的なテーブルアクセステスト完了')
+      
+    } catch (error) {
+      console.error('データベース接続テストエラー:', error)
+    }
+  }
+
+  // フォールバック保存されたクイズを確認
+  const checkFallbackQuiz = () => {
+    try {
+      const saved = localStorage.getItem('fallback_quiz')
+      if (saved) {
+        const quiz = JSON.parse(saved)
+        setFallbackQuiz(quiz)
+        console.log('フォールバック保存されたクイズを発見:', quiz)
+      }
+    } catch (error) {
+      console.error('フォールバッククイズの読み込みエラー:', error)
+    }
   }
 
   // 設定未完了の場合の表示
@@ -749,7 +957,16 @@ export default function ContentHubPage() {
                             disabled={isLoading || item.status === 'quiz_generated'}
                             className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
                           >
-                            {item.status === 'quiz_generated' ? '生成済み' : 'クイズ生成'}
+                            {generatingQuizFor === item.id ? (
+                              <div className="flex items-center">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                生成中...
+                              </div>
+                            ) : item.status === 'quiz_generated' ? (
+                              '生成済み'
+                            ) : (
+                              'クイズ生成'
+                            )}
                           </button>
                         </div>
                       </div>
@@ -822,7 +1039,14 @@ export default function ContentHubPage() {
                           disabled={isLoading}
                           className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 disabled:opacity-50"
                         >
-                          Generate Quiz
+                          {generatingQuizFor === item.id ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600 mr-1"></div>
+                              生成中...
+                            </div>
+                          ) : (
+                            'Generate Quiz'
+                          )}
                         </button>
                       </div>
                     </div>
@@ -917,12 +1141,68 @@ export default function ContentHubPage() {
             <p className="text-sm text-gray-600">承認済み、配信可能</p>
           </div>
         </div>
+
+        {/* フォールバック保存されたクイズの表示 */}
+        {fallbackQuiz && (
+          <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                  ⚠️ 一時保存されたクイズがあります
+                </h3>
+                <p className="text-yellow-700 mb-3">
+                  データベースへの保存に失敗しましたが、クイズはローカルに一時保存されています。
+                  再度保存を試行するか、手動で確認してください。
+                </p>
+                <div className="bg-white rounded p-3 mb-3">
+                  <p className="text-sm font-medium text-gray-900">{fallbackQuiz.title}</p>
+                  <p className="text-xs text-gray-600">
+                    問題数: {fallbackQuiz.content.questions.length}問 | 
+                    ソース: {fallbackQuiz.origin} | 
+                    保存日時: {new Date(fallbackQuiz.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // フォールバッククイズをプレビューに設定
+                      setPreviewQuiz({
+                        questions: fallbackQuiz.content.questions,
+                        sourceType: fallbackQuiz.origin,
+                        sourceId: fallbackQuiz.source_id,
+                        title: fallbackQuiz.title
+                      })
+                      setPreviewSourceType(fallbackQuiz.origin)
+                      setIsQuizPreviewOpen(true)
+                    }}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                  >
+                    クイズを確認
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('fallback_quiz')
+                      setFallbackQuiz(null)
+                      showToast('success', '一時保存されたクイズを削除しました')
+                    }}
+                    className="px-4 py-2 border border-yellow-300 text-yellow-700 rounded-md hover:bg-yellow-100"
+                  >
+                    削除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* RSS追加ダイアログ */}
       {isRssDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">RSSソース追加</h3>
               <button onClick={() => setIsRssDialogOpen(false)}>
@@ -985,8 +1265,11 @@ export default function ContentHubPage() {
 
       {/* Document追加ダイアログ */}
       {isPolicyDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add Document</h3>
               <button onClick={() => setIsPolicyDialogOpen(false)}>
@@ -1074,8 +1357,11 @@ export default function ContentHubPage() {
 
       {/* Manual追加ダイアログ */}
       {isManualDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Manual下書き追加</h3>
               <button onClick={() => setIsManualDialogOpen(false)}>
@@ -1152,8 +1438,11 @@ export default function ContentHubPage() {
 
       {/* クイズプレビューダイアログ */}
       {isQuizPreviewOpen && previewQuiz && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900">クイズプレビュー</h3>
               <button 
@@ -1173,7 +1462,7 @@ export default function ContentHubPage() {
 
             <div className="space-y-6 mb-6">
               {previewQuiz.questions.map((question: any, index: number) => (
-                <div key={index} className="border rounded-lg p-4 bg-white">
+                <div key={index} className="border rounded-lg p-4 bg-gray-50">
                   <h5 className="font-medium text-gray-900 mb-3">
                     問題 {index + 1}: {question.question}
                   </h5>
@@ -1185,7 +1474,7 @@ export default function ContentHubPage() {
                         className={`p-2 rounded border ${
                           option === question.correct_answer 
                             ? 'bg-green-50 border-green-200' 
-                            : 'bg-gray-50 border-gray-200'
+                            : 'bg-white border-gray-200'
                         }`}
                       >
                         <span className="text-sm text-gray-900">
@@ -1236,11 +1525,19 @@ export default function ContentHubPage() {
       )}
 
       {/* ローディングオーバーレイ */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">処理中...</p>
+      {isLoading && !generatingQuizFor && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 shadow-xl border">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">AIクイズ生成中...</h3>
+              <p className="text-gray-600">ドキュメントを分析してクイズを作成しています</p>
+              <div className="mt-4 flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
           </div>
         </div>
       )}
