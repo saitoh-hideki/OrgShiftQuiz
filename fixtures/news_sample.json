@@ -1,0 +1,60 @@
+{
+  "articles": [
+    {
+      "id": "news-001",
+      "title": "教育デジタル化推進法が成立、全国の学校でタブレット学習が本格化",
+      "source": "教育新聞",
+      "url": "https://example.com/news/001",
+      "published_at": "2024-12-15T09:00:00Z",
+      "content": "文部科学省は12月15日、教育デジタル化推進法が国会で成立したことを発表した。これにより、2025年度から全国の小中高校で一人一台のタブレット端末を活用した学習が本格化する。デジタル教科書の導入、AIを活用した個別最適化学習、オンライン授業の拡充などが予定されている。",
+      "summary": "教育デジタル化推進法成立で、2025年度から全国の学校でタブレット学習が本格化。AIを活用した個別最適化学習も導入。",
+      "category": "education",
+      "quiz_generated": false
+    },
+    {
+      "id": "news-002",
+      "title": "自治体システムに大規模サイバー攻撃、住民データの漏洩リスク",
+      "source": "ITセキュリティ新聞",
+      "url": "https://example.com/news/002",
+      "published_at": "2024-12-14T15:30:00Z",
+      "content": "警察庁サイバーセキュリティ対策本部は、12月14日までに全国15の自治体でシステムへの不正アクセスを確認したと発表した。ランサムウェアによる攻撃で、住民基本台帳システムが標的にされた可能性がある。現在のところ実際のデータ漏洩は確認されていないが、各自治体では緊急のセキュリティ対策を実施している。",
+      "summary": "全国15自治体でシステムへの不正アクセス確認。住民基本台帳システムが標的の可能性。",
+      "category": "technology",
+      "quiz_generated": false
+    },
+    {
+      "id": "news-003",
+      "title": "地域通貨で経済活性化、北海道ニセコ町が成功事例として注目",
+      "source": "地方経済ジャーナル",
+      "url": "https://example.com/news/003",
+      "published_at": "2024-12-13T08:00:00Z",
+      "content": "北海道ニセコ町が2023年から導入した地域通貨'ニセココイン'が、地域経済活性化の成功事例として全国から注目を集めている。デジタル地域通貨を使った地元消費が前年比150%増加、観光客数も120%増と、目覚ましい成果を上げている。地元商店街での利用でポイントがたまる仕組みや、納税での特典付与などが好評。",
+      "summary": "北海道ニセコ町の地域通貨'ニセココイン'が成功。地元消費150%増、観光客120%増の成果。",
+      "category": "local",
+      "quiz_generated": false
+    }
+  ],
+  "sources": [
+    {
+      "id": "source-001",
+      "name": "教育新聞",
+      "url": "https://example.com/rss/education",
+      "category": "education",
+      "is_active": true
+    },
+    {
+      "id": "source-002",
+      "name": "ITセキュリティ新聞",
+      "url": "https://example.com/rss/itsecurity",
+      "category": "technology",
+      "is_active": true
+    },
+    {
+      "id": "source-003",
+      "name": "地方経済ジャーナル",
+      "url": "https://example.com/rss/local",
+      "category": "local",
+      "is_active": true
+    }
+  ]
+}
