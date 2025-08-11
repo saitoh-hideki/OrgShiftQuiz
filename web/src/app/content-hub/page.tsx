@@ -32,7 +32,6 @@ export default function ContentHubPage() {
   // Policy追加用の状態
   const [policyForm, setPolicyForm] = useState({
     title: '',
-    version: '',
     effectiveDate: '',
     category: '',
     file: null as File | null
@@ -203,39 +202,161 @@ export default function ContentHubPage() {
       return
     }
     
-    if (!policyForm.title || !policyForm.version || !policyForm.file) {
-      showToast('error', '必須項目を入力してください')
+    if (!policyForm.title) {
+      showToast('error', 'タイトルを入力してください')
       return
     }
 
     setIsLoading(true)
     try {
-      // ファイルアップロード（簡易実装）
-      const storagePath = `policy_docs/${Date.now()}_${policyForm.file.name}`
-      
-      const { error } = await supabase
+      let storagePath = null;
+      let fileUrl = null;
+      let fileSize = null;
+      let fileType = null;
+      let originalFilename = null;
+
+      // ファイルがある場合はアップロードを試行
+      if (policyForm.file) {
+        try {
+          console.log('ファイルアップロード開始:', { 
+            fileName: policyForm.file.name, 
+            size: policyForm.file.size, 
+            type: policyForm.file.type 
+          })
+          
+          // ファイル名を英数字のみに変換
+          const timestamp = Date.now()
+          const fileExtension = policyForm.file.name.split('.').pop() || ''
+          const safeFileName = `policy_${timestamp}.${fileExtension}`
+          storagePath = `policy_docs/${safeFileName}`
+          
+          console.log('Storageバケット名:', 'policydocuments')
+          console.log('アップロードパス:', storagePath)
+          
+          // ファイルをSupabase Storageにアップロード
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('policydocuments')
+            .upload(storagePath, policyForm.file, {
+              cacheControl: '3600',
+              upsert: false
+            })
+
+          if (uploadError) {
+            console.error('Storageアップロードエラー詳細:', {
+              message: uploadError.message,
+              details: uploadError
+            })
+            throw new Error(`ファイルアップロードエラー: ${uploadError.message}`)
+          }
+
+          console.log('ファイルアップロード成功:', uploadData)
+
+          // ファイルの公開URLを取得
+          const { data: urlData } = supabase.storage
+            .from('policydocuments')
+            .getPublicUrl(storagePath)
+
+          fileUrl = urlData.publicUrl
+          fileSize = policyForm.file.size
+          fileType = policyForm.file.type
+          originalFilename = policyForm.file.name
+          
+          console.log('ファイルアップロード完了:', { storagePath, fileUrl, fileSize, fileType })
+        } catch (fileError) {
+          console.warn('ファイルアップロードに失敗しましたが、Policy文書の作成は続行します:', fileError)
+          // ファイルアップロードに失敗してもPolicy文書の作成は続行
+        }
+      }
+
+      console.log('Policy文書データベース挿入開始:', {
+        company_id: TEST_COMPANY_ID,
+        title: policyForm.title,
+        storage_path: storagePath,
+        file_url: fileUrl
+      })
+
+      // Policy文書をデータベースに保存
+      const { data: insertData, error: insertError } = await supabase
         .from('policy_documents')
         .insert({
           company_id: TEST_COMPANY_ID,
           title: policyForm.title,
-          version: policyForm.version,
           effective_date: policyForm.effectiveDate || null,
           category: policyForm.category || null,
           storage_path: storagePath,
-          summary: `${policyForm.title}の${policyForm.version}版`
+          summary: `${policyForm.title}`,
+          file_url: fileUrl,
+          file_size: fileSize,
+          file_type: fileType,
+          original_filename: originalFilename,
+          version: '1.0' // バージョン情報を追加
         })
+        .select()
 
-      if (error) throw error
+      if (insertError) {
+        console.error('データベース挿入エラー:', insertError)
+        throw new Error(`データベース挿入エラー: ${insertError.message}`)
+      }
 
-      showToast('success', 'Policy文書を追加しました')
+      console.log('Policy文書挿入成功:', insertData)
+
+      if (policyForm.file && fileUrl) {
+        showToast('success', 'Policy文書をファイル付きでアップロードしました')
+      } else {
+        showToast('success', 'Policy文書を作成しました（ファイルなし）')
+      }
       setIsPolicyDialogOpen(false)
-      setPolicyForm({ title: '', version: '', effectiveDate: '', category: '', file: null })
+      setPolicyForm({ title: '', effectiveDate: '', category: '', file: null })
       loadData()
     } catch (error) {
       console.error('Policy追加エラー:', error)
-      showToast('error', 'Policy文書の追加に失敗しました')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      showToast('error', `Policy文書のアップロードに失敗しました: ${errorMessage}`)
+      
+      // より詳細なエラー情報をコンソールに出力
+      if (error instanceof Error) {
+        console.error('エラーの詳細:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        })
+      }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // ファイル選択処理
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // ファイルサイズチェック（10MB制限）
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('error', 'ファイルサイズは10MB以下にしてください')
+        return
+      }
+      
+      // ファイル形式チェック
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+      if (!allowedTypes.includes(file.type)) {
+        showToast('error', 'PDF、Word、テキストファイルのみアップロード可能です')
+        return
+      }
+      
+      setPolicyForm({ ...policyForm, file })
+    }
+  }
+
+  // ドラッグ&ドロップ処理
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault()
+  }
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault()
+    const files = event.dataTransfer.files
+    if (files.length > 0) {
+      handleFileSelect({ target: { files } } as any)
     }
   }
 
@@ -436,7 +557,7 @@ export default function ContentHubPage() {
                       <p className="text-xs text-gray-600 mb-3">
                         {item.source_id ? (
                           <span className="flex items-center">
-                            <span className="text-blue-600 font-medium">📰 {item.news_sources?.name}</span>
+                            <span className="text-blue-600 font-medium">�� {item.news_sources?.name}</span>
                             <span className="mx-2">•</span>
                             <span>{new Date(item.created_at).toLocaleDateString()}</span>
                           </span>
@@ -513,14 +634,27 @@ export default function ContentHubPage() {
                         </span>
                       </div>
                       <div className="flex items-center text-xs text-gray-600 mb-3">
-                        <span>{item.version}</span>
                         {item.effective_date && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span>施行日: {item.effective_date}</span>
-                          </>
+                          <span>施行日: {item.effective_date}</span>
                         )}
                       </div>
+                      {item.file_url && (
+                        <div className="mb-3">
+                          <a 
+                            href={item.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            📄 ファイルを表示
+                          </a>
+                          {item.original_filename && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              元ファイル名: {item.original_filename}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs text-red-600">
                           <AlertCircle className="h-3 w-3 mr-1" />
@@ -697,57 +831,67 @@ export default function ContentHubPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Policy文書追加</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Policy文書追加</h3>
               <button onClick={() => setIsPolicyDialogOpen(false)}>
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-gray-600" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">タイトル</label>
                 <input
                   type="text"
                   value={policyForm.title}
                   onChange={(e) => setPolicyForm({ ...policyForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500"
                   placeholder="例: 情報セキュリティ基本方針"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">版</label>
-                <input
-                  type="text"
-                  value={policyForm.version}
-                  onChange={(e) => setPolicyForm({ ...policyForm, version: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="例: v2.1"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">施行日</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">施行日</label>
                 <input
                   type="date"
                   value={policyForm.effectiveDate}
                   onChange={(e) => setPolicyForm({ ...policyForm, effectiveDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">カテゴリ</label>
                 <input
                   type="text"
                   value={policyForm.category}
                   onChange={(e) => setPolicyForm({ ...policyForm, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500"
                   placeholder="例: セキュリティ"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ファイル</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">ファイル</label>
+                <div 
+                  className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-md text-center cursor-pointer hover:border-blue-400 transition-colors"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('policy-file-input')?.click()}
+                >
+                  {policyForm.file ? (
+                    <div className="text-sm">
+                      <p className="text-blue-600 font-medium">✓ {policyForm.file.name}</p>
+                      <p className="text-gray-700">({Math.round(policyForm.file.size / 1024)} KB)</p>
+                      <p className="text-gray-600 mt-1">クリックまたはドラッグ&ドロップで変更</p>
+                    </div>
+                  ) : (
+                    <div className="text-gray-700">
+                      <p className="mb-2">📁 ファイルを選択またはドラッグ&ドロップ</p>
+                      <p className="text-xs text-gray-600">PDF、Word、テキストファイル (最大10MB)</p>
+                    </div>
+                  )}
+                </div>
                 <input
+                  id="policy-file-input"
                   type="file"
-                  onChange={(e) => setPolicyForm({ ...policyForm, file: e.target.files?.[0] || null })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  onChange={handleFileSelect}
+                  className="hidden"
                   accept=".pdf,.docx,.txt"
                 />
               </div>
@@ -761,7 +905,7 @@ export default function ContentHubPage() {
                 </button>
                 <button
                   onClick={() => setIsPolicyDialogOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                 >
                   キャンセル
                 </button>
