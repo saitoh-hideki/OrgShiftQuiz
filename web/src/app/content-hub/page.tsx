@@ -6,10 +6,19 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 // Supabaseクライアント
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-)
+const createSupabaseClient = () => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
+    {
+      auth: {
+        persistSession: false
+      }
+    }
+  )
+}
+
+let supabase = createSupabaseClient()
 
 // テストモード用の会社ID
 const TEST_COMPANY_ID = '00000000-0000-0000-0000-000000000001'
@@ -22,6 +31,11 @@ export default function ContentHubPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [isConfigured, setIsConfigured] = useState(false)
   
+  // クイズプレビュー用の状態
+  const [isQuizPreviewOpen, setIsQuizPreviewOpen] = useState(false)
+  const [previewQuiz, setPreviewQuiz] = useState<any>(null)
+  const [previewSourceType, setPreviewSourceType] = useState<'policy' | 'news' | null>(null)
+  
   // RSS追加用の状態
   const [rssForm, setRssForm] = useState({
     name: '',
@@ -29,8 +43,8 @@ export default function ContentHubPage() {
     category: 'it'
   })
   
-  // Policy追加用の状態
-  const [policyForm, setPolicyForm] = useState({
+  // Document追加用の状態
+  const [documentForm, setDocumentForm] = useState({
     title: '',
     effectiveDate: '',
     category: '',
@@ -48,16 +62,38 @@ export default function ContentHubPage() {
   // データ状態
   const [newsSources, setNewsSources] = useState<any[]>([])
   const [newsArticles, setNewsArticles] = useState<any[]>([])
-  const [policyDocuments, setPolicyDocuments] = useState<any[]>([])
+  const [documentItems, setDocumentItems] = useState<any[]>([])
   const [manualDrafts, setManualDrafts] = useState<any[]>([])
 
   // 初期データ読み込み
   useEffect(() => {
     checkConfiguration()
     if (isConfigured) {
+      // Supabaseクライアントを再作成してスキーマキャッシュをリフレッシュ
+      refreshSupabaseClient()
       loadData()
     }
   }, [isConfigured])
+
+  // Supabaseクライアントを再作成する関数
+  const refreshSupabaseClient = () => {
+    console.log('Supabaseクライアントを再作成中...')
+    supabase = createSupabaseClient()
+    console.log('Supabaseクライアントの再作成完了')
+  }
+
+  // Supabaseスキーマキャッシュをリフレッシュする関数
+  const refreshSupabaseSchema = async () => {
+    try {
+      console.log('Supabaseスキーマキャッシュをリフレッシュ中...')
+      // スキーマ情報を取得してキャッシュを更新
+      await supabase.rpc('get_schema_info')
+      console.log('スキーマキャッシュのリフレッシュ完了')
+    } catch (error) {
+      console.log('スキーマキャッシュのリフレッシュに失敗（これは正常な動作です）:', error)
+      // エラーが発生しても続行（RPCが存在しない場合）
+    }
+  }
 
   const checkConfiguration = () => {
     const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && 
@@ -99,14 +135,14 @@ export default function ContentHubPage() {
       
       if (articles) setNewsArticles(articles)
 
-      // Policy文書読み込み
-      const { data: policies } = await supabase
+      // Document文書読み込み
+      const { data: documents } = await supabase
         .from('policy_documents')
         .select('*')
         .eq('company_id', TEST_COMPANY_ID)
         .order('created_at', { ascending: false })
       
-      if (policies) setPolicyDocuments(policies)
+      if (documents) setDocumentItems(documents)
 
       // Manual下書き読み込み
       const { data: manuals } = await supabase
@@ -195,14 +231,52 @@ export default function ContentHubPage() {
     }
   }
 
-  // Policy追加
-  const handlePolicyAdd = async () => {
+  // ファイルからテキストを抽出する関数
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    try {
+      if (file.type === 'text/plain') {
+        // テキストファイルの場合は直接読み込み
+        return await file.text()
+      } else if (file.type === 'application/pdf') {
+        // PDFファイルの場合はPDF.jsを使用してテキスト抽出
+        const pdfjsLib = await import('pdfjs-dist')
+        const arrayBuffer = await file.arrayBuffer()
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        let fullText = ''
+        
+        for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) { // 最大10ページまで
+          const page = await pdf.getPage(i)
+          const textContent = await page.getTextContent()
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ')
+          fullText += pageText + '\n'
+        }
+        
+        return fullText
+      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // Wordファイルの場合はmammoth.jsを使用してテキスト抽出
+        const mammoth = await import('mammoth')
+        const arrayBuffer = await file.arrayBuffer()
+        const result = await mammoth.extractRawText({ arrayBuffer })
+        return result.value
+      } else {
+        throw new Error('Unsupported file type')
+      }
+    } catch (error) {
+      console.error('テキスト抽出エラー:', error)
+      throw new Error('ファイルからテキストを抽出できませんでした')
+    }
+  }
+
+  // Document追加
+  const handleDocumentAdd = async () => {
     if (!isConfigured) {
       showToast('error', 'Supabaseの設定が完了していません')
       return
     }
     
-    if (!policyForm.title) {
+    if (!documentForm.title) {
       showToast('error', 'タイトルを入力してください')
       return
     }
@@ -214,21 +288,22 @@ export default function ContentHubPage() {
       let fileSize = null;
       let fileType = null;
       let originalFilename = null;
+      let contentText = '';
 
-      // ファイルがある場合はアップロードを試行
-      if (policyForm.file) {
+      // ファイルがある場合はアップロードとテキスト抽出を試行
+      if (documentForm.file) {
         try {
           console.log('ファイルアップロード開始:', { 
-            fileName: policyForm.file.name, 
-            size: policyForm.file.size, 
-            type: policyForm.file.type 
+            fileName: documentForm.file.name, 
+            size: documentForm.file.size, 
+            type: documentForm.file.type 
           })
           
           // ファイル名を英数字のみに変換
           const timestamp = Date.now()
-          const fileExtension = policyForm.file.name.split('.').pop() || ''
-          const safeFileName = `policy_${timestamp}.${fileExtension}`
-          storagePath = `policy_docs/${safeFileName}`
+          const fileExtension = documentForm.file.name.split('.').pop() || ''
+          const safeFileName = `document_${timestamp}.${fileExtension}`
+          storagePath = `document_docs/${safeFileName}`
           
           console.log('Storageバケット名:', 'policydocuments')
           console.log('アップロードパス:', storagePath)
@@ -236,7 +311,7 @@ export default function ContentHubPage() {
           // ファイルをSupabase Storageにアップロード
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('policydocuments')
-            .upload(storagePath, policyForm.file, {
+            .upload(storagePath, documentForm.file, {
               cacheControl: '3600',
               upsert: false
             })
@@ -257,39 +332,46 @@ export default function ContentHubPage() {
             .getPublicUrl(storagePath)
 
           fileUrl = urlData.publicUrl
-          fileSize = policyForm.file.size
-          fileType = policyForm.file.type
-          originalFilename = policyForm.file.name
+          fileSize = documentForm.file.size
+          fileType = documentForm.file.type
+          originalFilename = documentForm.file.name
+          
+          // ファイルからテキスト内容を抽出
+          console.log('テキスト抽出開始...')
+          contentText = await extractTextFromFile(documentForm.file)
+          console.log('テキスト抽出完了、文字数:', contentText.length)
           
           console.log('ファイルアップロード完了:', { storagePath, fileUrl, fileSize, fileType })
         } catch (fileError) {
-          console.warn('ファイルアップロードに失敗しましたが、Policy文書の作成は続行します:', fileError)
-          // ファイルアップロードに失敗してもPolicy文書の作成は続行
+          console.warn('ファイル処理に失敗しましたが、Document文書の作成は続行します:', fileError)
+          // ファイル処理に失敗してもDocument文書の作成は続行
         }
       }
 
-      console.log('Policy文書データベース挿入開始:', {
+      console.log('Document文書データベース挿入開始:', {
         company_id: TEST_COMPANY_ID,
-        title: policyForm.title,
+        title: documentForm.title,
         storage_path: storagePath,
-        file_url: fileUrl
+        file_url: fileUrl,
+        content_text_length: contentText.length
       })
 
-      // Policy文書をデータベースに保存
+      // Document文書をデータベースに保存（テキスト内容も含む）
       const { data: insertData, error: insertError } = await supabase
         .from('policy_documents')
         .insert({
           company_id: TEST_COMPANY_ID,
-          title: policyForm.title,
-          effective_date: policyForm.effectiveDate || null,
-          category: policyForm.category || null,
+          title: documentForm.title,
+          effective_date: documentForm.effectiveDate || null,
+          category: documentForm.category || null,
           storage_path: storagePath,
-          summary: `${policyForm.title}`,
+          summary: `${documentForm.title}`,
           file_url: fileUrl,
           file_size: fileSize,
           file_type: fileType,
           original_filename: originalFilename,
-          version: '1.0' // バージョン情報を追加
+          version: '1.0', // バージョン情報を追加
+          content_text: contentText || null // 抽出されたテキスト内容を保存
         })
         .select()
 
@@ -298,20 +380,24 @@ export default function ContentHubPage() {
         throw new Error(`データベース挿入エラー: ${insertError.message}`)
       }
 
-      console.log('Policy文書挿入成功:', insertData)
+      console.log('Document文書挿入成功:', insertData)
 
-      if (policyForm.file && fileUrl) {
-        showToast('success', 'Policy文書をファイル付きでアップロードしました')
+      if (documentForm.file && fileUrl) {
+        if (contentText) {
+          showToast('success', 'Document文書をファイル付きでアップロードし、テキスト内容を抽出しました')
+        } else {
+          showToast('success', 'Document文書をファイル付きでアップロードしました（テキスト抽出に失敗）')
+        }
       } else {
-        showToast('success', 'Policy文書を作成しました（ファイルなし）')
+        showToast('success', 'Document文書を作成しました（ファイルなし）')
       }
       setIsPolicyDialogOpen(false)
-      setPolicyForm({ title: '', effectiveDate: '', category: '', file: null })
+      setDocumentForm({ title: '', effectiveDate: '', category: '', file: null })
       loadData()
     } catch (error) {
-      console.error('Policy追加エラー:', error)
+      console.error('Document追加エラー:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      showToast('error', `Policy文書のアップロードに失敗しました: ${errorMessage}`)
+      showToast('error', `Document文書のアップロードに失敗しました: ${errorMessage}`)
       
       // より詳細なエラー情報をコンソールに出力
       if (error instanceof Error) {
@@ -343,7 +429,7 @@ export default function ContentHubPage() {
         return
       }
       
-      setPolicyForm({ ...policyForm, file })
+      setDocumentForm({ ...documentForm, file })
     }
   }
 
@@ -429,8 +515,8 @@ export default function ContentHubPage() {
     }
   }
 
-  // Policyからクイズ生成
-  const handlePolicyQuizGenerate = async (policyId: string) => {
+  // Documentからクイズ生成
+  const handleDocumentQuizGenerate = async (documentId: string) => {
     if (!isConfigured) {
       showToast('error', 'Supabaseの設定が完了していません')
       return
@@ -438,23 +524,94 @@ export default function ContentHubPage() {
     
     setIsLoading(true)
     try {
-      const response = await fetch('/api/policy-generate-quiz', {
+      // まず、ドキュメントの情報を取得
+      const { data: document, error: docError } = await supabase
+        .from('policy_documents')
+        .select('*')
+        .eq('id', documentId)
+        .single()
+      
+      if (docError || !document) {
+        throw new Error('ドキュメントが見つかりません')
+      }
+      
+      console.log('Document data:', document)
+      
+      // 正しいAPIを呼び出し
+      const response = await fetch('/api/document-generate-quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policyId })
+        body: JSON.stringify({ 
+          documentId: documentId,
+          documentType: 'policy'
+        })
       })
       
       const result = await response.json()
       
       if (result.ok) {
-        showToast('success', `${result.count}問のクイズを生成しました`)
-        loadData()
+        // クイズプレビューを表示
+        setPreviewQuiz({
+          questions: result.questions || [],
+          sourceType: 'policy',
+          sourceId: documentId,
+          title: result.title || 'Document文書からのクイズ'
+        })
+        setPreviewSourceType('policy')
+        setIsQuizPreviewOpen(true)
+        showToast('success', `${result.count}問のクイズを生成しました。内容を確認してください。`)
+        
+        // デバッグ情報をコンソールに出力
+        console.log('Quiz generation result:', result)
+        console.log('Generated questions count:', result.count)
       } else {
         throw new Error(result.error)
       }
     } catch (error) {
       console.error('クイズ生成エラー:', error)
       showToast('error', 'クイズの生成に失敗しました')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // クイズ保存処理
+  const handleQuizSave = async () => {
+    if (!previewQuiz) return
+    
+    setIsLoading(true)
+    try {
+      // クイズをデータベースに保存
+      const { error } = await supabase
+        .from('tray_items')
+        .insert({
+          company_id: TEST_COMPANY_ID,
+          origin: previewSourceType,
+          source_id: previewQuiz.sourceId,
+          title: previewQuiz.title,
+          content: {
+            type: previewSourceType,
+            questions: previewQuiz.questions,
+            metadata: {
+              generated_at: new Date().toISOString(),
+              ai_model: 'stub-v1.0'
+            }
+          },
+          status: 'draft'
+        })
+
+      if (error) throw error
+
+      showToast('success', 'クイズを保存しました。配信ビルダーに移動します。')
+      setIsQuizPreviewOpen(false)
+      setPreviewQuiz(null)
+      
+      // 配信ビルダーページに移動
+      window.location.href = '/dispatch-builder'
+      
+    } catch (error) {
+      console.error('クイズ保存エラー:', error)
+      showToast('error', 'クイズの保存に失敗しました')
     } finally {
       setIsLoading(false)
     }
@@ -476,7 +633,7 @@ export default function ContentHubPage() {
               メインメニューに戻る
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">コンテンツハブ</h1>
-            <p className="text-gray-600 mt-2">News・Policy・Manualの管理とAIクイズ生成</p>
+            <p className="text-gray-600 mt-2">News・Document・Manualの管理とAIクイズ生成</p>
           </div>
           
           <div className="bg-white rounded-lg p-8 text-center">
@@ -510,7 +667,7 @@ export default function ContentHubPage() {
             メインメニューに戻る
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">コンテンツハブ</h1>
-          <p className="text-gray-600 mt-2">News・Policy・Manualの管理とAIクイズ生成</p>
+          <p className="text-gray-600 mt-2">News・Document・Manualの管理とAIクイズ生成</p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -603,39 +760,39 @@ export default function ContentHubPage() {
             </div>
           </div>
 
-          {/* Policy Section */}
+          {/* ドキュメント Section */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <FileText className="h-6 w-6 text-green-600 mr-3" />
-                  <h2 className="text-xl font-semibold text-gray-900">Policy</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
                 </div>
                 <button 
                   onClick={() => setIsPolicyDialogOpen(true)}
                   className="flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  文書追加
+                  Add Document
                 </button>
               </div>
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {policyDocuments.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Policy文書がありません</p>
+                {documentItems.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No documents available</p>
                 ) : (
-                  policyDocuments.map((item) => (
+                  documentItems.map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.title}</h3>
                         <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                          下書き
+                          Draft
                         </span>
                       </div>
                       <div className="flex items-center text-xs text-gray-600 mb-3">
                         {item.effective_date && (
-                          <span>施行日: {item.effective_date}</span>
+                          <span>Effective Date: {item.effective_date}</span>
                         )}
                       </div>
                       {item.file_url && (
@@ -646,11 +803,11 @@ export default function ContentHubPage() {
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
                           >
-                            📄 ファイルを表示
+                            📄 View File
                           </a>
                           {item.original_filename && (
                             <p className="text-xs text-gray-500 mt-1">
-                              元ファイル名: {item.original_filename}
+                              Original filename: {item.original_filename}
                             </p>
                           )}
                         </div>
@@ -658,14 +815,14 @@ export default function ContentHubPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs text-red-600">
                           <AlertCircle className="h-3 w-3 mr-1" />
-                          同意必須
+                          Approval Required
                         </div>
                         <button 
-                          onClick={() => handlePolicyQuizGenerate(item.id)}
+                          onClick={() => handleDocumentQuizGenerate(item.id)}
                           disabled={isLoading}
                           className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 disabled:opacity-50"
                         >
-                          クイズ生成
+                          Generate Quiz
                         </button>
                       </div>
                     </div>
@@ -731,10 +888,10 @@ export default function ContentHubPage() {
             <h3 className="font-semibold text-gray-900 mb-2">承認待ちコンテンツ</h3>
             <div className="text-2xl font-bold text-orange-600">
               {newsArticles.filter(a => a.status === 'needs_review').length + 
-               policyDocuments.filter(p => p.status === 'pending_approval').length}
+               documentItems.filter(p => p.status === 'pending_approval').length}
             </div>
             <p className="text-sm text-gray-600">
-              Policy: {policyDocuments.filter(p => p.status === 'pending_approval').length}件, 
+              Document: {documentItems.filter(p => p.status === 'pending_approval').length}件, 
               News: {newsArticles.filter(a => a.status === 'needs_review').length}件
             </p>
           </div>
@@ -743,7 +900,7 @@ export default function ContentHubPage() {
             <h3 className="font-semibold text-gray-900 mb-2">今月の生成クイズ</h3>
             <div className="text-2xl font-bold text-blue-600">
               {newsArticles.filter(a => a.status === 'quiz_generated').length + 
-               policyDocuments.length}
+               documentItems.length}
             </div>
             <p className="text-sm text-gray-600">
               自動生成: {newsArticles.filter(a => a.status === 'quiz_generated').length}件, 
@@ -755,7 +912,7 @@ export default function ContentHubPage() {
             <h3 className="font-semibold text-gray-900 mb-2">配信待ちTray</h3>
             <div className="text-2xl font-bold text-green-600">
               {newsArticles.filter(a => a.status === 'quiz_generated').length + 
-               policyDocuments.length + manualDrafts.length}
+               documentItems.length + manualDrafts.length}
             </div>
             <p className="text-sm text-gray-600">承認済み、配信可能</p>
           </div>
@@ -826,69 +983,69 @@ export default function ContentHubPage() {
         </div>
       )}
 
-      {/* Policy追加ダイアログ */}
+      {/* Document追加ダイアログ */}
       {isPolicyDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Policy文書追加</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Add Document</h3>
               <button onClick={() => setIsPolicyDialogOpen(false)}>
                 <X className="h-5 w-5 text-gray-600" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">タイトル</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Title</label>
                 <input
                   type="text"
-                  value={policyForm.title}
-                  onChange={(e) => setPolicyForm({ ...policyForm, title: e.target.value })}
+                  value={documentForm.title}
+                  onChange={(e) => setDocumentForm({ ...documentForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500"
-                  placeholder="例: 情報セキュリティ基本方針"
+                  placeholder="e.g., Information Security Policy, Business Manual, Procedure Guide"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">施行日</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Effective Date</label>
                 <input
                   type="date"
-                  value={policyForm.effectiveDate}
-                  onChange={(e) => setPolicyForm({ ...policyForm, effectiveDate: e.target.value })}
+                  value={documentForm.effectiveDate}
+                  onChange={(e) => setDocumentForm({ ...documentForm, effectiveDate: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">カテゴリ</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Category</label>
                 <input
                   type="text"
-                  value={policyForm.category}
-                  onChange={(e) => setPolicyForm({ ...policyForm, category: e.target.value })}
+                  value={documentForm.category}
+                  onChange={(e) => setDocumentForm({ ...documentForm, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500"
-                  placeholder="例: セキュリティ"
+                  placeholder="e.g., Security"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">ファイル</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">File</label>
                 <div 
                   className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-md text-center cursor-pointer hover:border-blue-400 transition-colors"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
-                  onClick={() => document.getElementById('policy-file-input')?.click()}
+                  onClick={() => document.getElementById('document-file-input')?.click()}
                 >
-                  {policyForm.file ? (
+                  {documentForm.file ? (
                     <div className="text-sm">
-                      <p className="text-blue-600 font-medium">✓ {policyForm.file.name}</p>
-                      <p className="text-gray-700">({Math.round(policyForm.file.size / 1024)} KB)</p>
-                      <p className="text-gray-600 mt-1">クリックまたはドラッグ&ドロップで変更</p>
+                      <p className="text-blue-600 font-medium">✓ {documentForm.file.name}</p>
+                      <p className="text-gray-700">({Math.round(documentForm.file.size / 1024)} KB)</p>
+                      <p className="text-gray-600 mt-1">Click or drag & drop to change</p>
                     </div>
                   ) : (
                     <div className="text-gray-700">
-                      <p className="mb-2">📁 ファイルを選択またはドラッグ&ドロップ</p>
-                      <p className="text-xs text-gray-600">PDF、Word、テキストファイル (最大10MB)</p>
+                      <p className="mb-2">📁 Select file or drag & drop</p>
+                      <p className="text-xs text-gray-600">PDF, Word, Text files (max 10MB)</p>
                     </div>
                   )}
                 </div>
                 <input
-                  id="policy-file-input"
+                  id="document-file-input"
                   type="file"
                   onChange={handleFileSelect}
                   className="hidden"
@@ -897,17 +1054,17 @@ export default function ContentHubPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={handlePolicyAdd}
+                  onClick={handleDocumentAdd}
                   disabled={isLoading}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
-                  {isLoading ? '追加中...' : '追加'}
+                  {isLoading ? 'Adding...' : 'Add'}
                 </button>
                 <button
                   onClick={() => setIsPolicyDialogOpen(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
                 >
-                  キャンセル
+                  Cancel
                 </button>
               </div>
             </div>
@@ -988,6 +1145,82 @@ export default function ContentHubPage() {
                   キャンセル
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* クイズプレビューダイアログ */}
+      {isQuizPreviewOpen && previewQuiz && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">クイズプレビュー</h3>
+              <button 
+                onClick={() => setIsQuizPreviewOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-2">{previewQuiz.title}</h4>
+              <p className="text-sm text-gray-600">
+                生成されたクイズ: {previewQuiz.questions.length}問
+              </p>
+            </div>
+
+            <div className="space-y-6 mb-6">
+              {previewQuiz.questions.map((question: any, index: number) => (
+                <div key={index} className="border rounded-lg p-4 bg-white">
+                  <h5 className="font-medium text-gray-900 mb-3">
+                    問題 {index + 1}: {question.question}
+                  </h5>
+                  
+                  <div className="space-y-2 mb-3">
+                    {question.options.map((option: string, optIndex: number) => (
+                      <div 
+                        key={optIndex} 
+                        className={`p-2 rounded border ${
+                          option === question.correct_answer 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <span className="text-sm text-gray-900">
+                          {String.fromCharCode(65 + optIndex)}. {option}
+                          {option === question.correct_answer && (
+                            <span className="ml-2 text-green-600 font-medium">✓ 正解</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {question.explanation && (
+                    <p className="text-sm text-gray-900 bg-blue-50 p-2 rounded">
+                      解説: {question.explanation}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setIsQuizPreviewOpen(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleQuizSave}
+                disabled={isLoading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isLoading ? '保存中...' : '保存して配信ビルダーへ'}
+              </button>
             </div>
           </div>
         </div>

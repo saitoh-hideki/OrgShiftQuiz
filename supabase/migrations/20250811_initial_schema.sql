@@ -124,6 +124,11 @@ CREATE TABLE policy_documents (
   category TEXT,
   storage_path TEXT NOT NULL,
   summary TEXT,
+  content_text TEXT, -- ファイルから抽出されたテキスト内容（クイズ生成用）
+  file_url TEXT, -- ファイルの公開URL
+  file_size BIGINT, -- ファイルサイズ（バイト）
+  file_type TEXT, -- ファイルのMIMEタイプ
+  original_filename TEXT, -- 元のファイル名
   created_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
