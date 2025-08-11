@@ -87,10 +87,13 @@ export default function ContentHubPage() {
       
       if (sources) setNewsSources(sources)
 
-      // 記事読み込み
+      // 記事読み込み（RSSソース情報も含める）
       const { data: articles } = await supabase
         .from('news_articles')
-        .select('*')
+        .select(`
+          *,
+          news_sources!inner(name)
+        `)
         .eq('company_id', TEST_COMPANY_ID)
         .order('created_at', { ascending: false })
         .limit(10)
@@ -431,8 +434,23 @@ export default function ContentHubPage() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-600 mb-3">
-                        {item.source_id ? 'RSSソース' : '手動追加'} • {new Date(item.created_at).toLocaleDateString()}
+                        {item.source_id ? (
+                          <span className="flex items-center">
+                            <span className="text-blue-600 font-medium">📰 {item.news_sources?.name}</span>
+                            <span className="mx-2">•</span>
+                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                          </span>
+                        ) : (
+                          <span>手動追加 • {new Date(item.created_at).toLocaleDateString()}</span>
+                        )}
                       </p>
+                      {item.url && (
+                        <p className="text-xs text-gray-500 mb-2">
+                          🔗 <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                            {item.url.length > 50 ? item.url.substring(0, 50) + '...' : item.url}
+                          </a>
+                        </p>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs">
                           {item.status === 'quiz_generated' ? (
