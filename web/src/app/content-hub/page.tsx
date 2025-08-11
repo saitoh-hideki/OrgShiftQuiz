@@ -7,8 +7,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Supabaseクライアント
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 )
 
 // テストモード用の会社ID
@@ -20,6 +20,7 @@ export default function ContentHubPage() {
   const [isManualDialogOpen, setIsManualDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+  const [isConfigured, setIsConfigured] = useState(false)
   
   // RSS追加用の状態
   const [rssForm, setRssForm] = useState({
@@ -53,10 +54,29 @@ export default function ContentHubPage() {
 
   // 初期データ読み込み
   useEffect(() => {
-    loadData()
-  }, [])
+    checkConfiguration()
+    if (isConfigured) {
+      loadData()
+    }
+  }, [isConfigured])
+
+  const checkConfiguration = () => {
+    const hasSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                          process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder.supabase.co'
+    const hasAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && 
+                      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'placeholder-key'
+    
+    const configured = Boolean(hasSupabaseUrl && hasAnonKey)
+    setIsConfigured(configured)
+    
+    if (!configured) {
+      showToast('error', 'Supabaseの設定が完了していません。環境変数を設定してください。')
+    }
+  }
 
   const loadData = async () => {
+    if (!isConfigured) return
+    
     try {
       // RSSソース読み込み
       const { data: sources } = await supabase
@@ -103,6 +123,11 @@ export default function ContentHubPage() {
 
   // RSS追加
   const handleRssAdd = async () => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     if (!rssForm.name || !rssForm.url) {
       showToast('error', '名前とURLを入力してください')
       return
@@ -140,6 +165,11 @@ export default function ContentHubPage() {
 
   // 最新記事取得
   const handleFetchLatest = async () => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     setIsLoading(true)
     try {
       const response = await fetch('/api/news-pull', {
@@ -165,6 +195,11 @@ export default function ContentHubPage() {
 
   // Policy追加
   const handlePolicyAdd = async () => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     if (!policyForm.title || !policyForm.version || !policyForm.file) {
       showToast('error', '必須項目を入力してください')
       return
@@ -203,6 +238,11 @@ export default function ContentHubPage() {
 
   // Manual追加
   const handleManualAdd = async () => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     if (!manualForm.title || !manualForm.question || !manualForm.correct) {
       showToast('error', '必須項目を入力してください')
       return
@@ -236,6 +276,11 @@ export default function ContentHubPage() {
 
   // 記事からクイズ生成
   const handleGenerateQuiz = async (articleId: string) => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     setIsLoading(true)
     try {
       const response = await fetch('/api/news-generate-quiz', {
@@ -262,6 +307,11 @@ export default function ContentHubPage() {
 
   // Policyからクイズ生成
   const handlePolicyQuizGenerate = async (policyId: string) => {
+    if (!isConfigured) {
+      showToast('error', 'Supabaseの設定が完了していません')
+      return
+    }
+    
     setIsLoading(true)
     try {
       const response = await fetch('/api/policy-generate-quiz', {
@@ -289,6 +339,41 @@ export default function ContentHubPage() {
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  // 設定未完了の場合の表示
+  if (!isConfigured) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              メインメニューに戻る
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900">コンテンツハブ</h1>
+            <p className="text-gray-600 mt-2">News・Policy・Manualの管理とAIクイズ生成</p>
+          </div>
+          
+          <div className="bg-white rounded-lg p-8 text-center">
+            <div className="text-6xl mb-4">⚙️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">設定が必要です</h2>
+            <p className="text-gray-600 mb-6">
+              Supabaseの設定が完了していません。以下の手順で環境変数を設定してください。
+            </p>
+            <div className="bg-gray-100 p-4 rounded-lg text-left text-sm font-mono">
+              <p className="mb-2">1. Supabaseプロジェクトを作成</p>
+              <p className="mb-2">2. 環境変数を設定:</p>
+              <p className="mb-1">NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co</p>
+              <p className="mb-1">NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key</p>
+              <p className="mb-1">SUPABASE_SERVICE_ROLE_KEY=your-service-role-key</p>
+              <p className="mb-2">3. データベーススキーマを適用</p>
+              <p>4. Edge Functionsをデプロイ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
