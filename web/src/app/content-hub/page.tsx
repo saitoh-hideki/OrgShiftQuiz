@@ -66,9 +66,15 @@ export default function ContentHubPage() {
   // Manual追加用の状態
   const [manualForm, setManualForm] = useState({
     title: '',
-    question: '',
-    correct: '',
-    distractors: ['', '', '']
+    questions: [
+      {
+        question: '',
+        options: ['', '', '', ''],
+        correct_answer: '',
+        explanation: '',
+        difficulty: 'medium' as 'easy' | 'medium' | 'hard'
+      }
+    ]
   })
 
   // データ状態
@@ -468,28 +474,49 @@ export default function ContentHubPage() {
       return
     }
     
-    if (!manualForm.title || !manualForm.question || !manualForm.correct) {
-      showToast('error', '必須項目を入力してください')
+    if (!manualForm.title || manualForm.questions.length === 0) {
+      showToast('error', 'タイトルと問題を入力してください')
       return
+    }
+
+    // 各問題の必須項目チェック
+    for (let i = 0; i < manualForm.questions.length; i++) {
+      const q = manualForm.questions[i]
+      if (!q.question || !q.correct_answer || q.options.some(opt => !opt.trim())) {
+        showToast('error', `問題${i + 1}の必須項目を入力してください`)
+        return
+      }
     }
 
     setIsLoading(true)
     try {
-      const { error } = await supabase
-        .from('manual_drafts')
-        .insert({
-          company_id: TEST_COMPANY_ID,
-          title: manualForm.title,
-          question: manualForm.question,
-          correct: manualForm.correct,
-          distractors: manualForm.distractors.filter(d => d.trim())
-        })
+      // 各問題を個別に保存
+      for (const questionData of manualForm.questions) {
+        const { error } = await supabase
+          .from('manual_drafts')
+          .insert({
+            company_id: TEST_COMPANY_ID,
+            title: manualForm.title,
+            question: questionData.question,
+            correct: questionData.correct_answer,
+            distractors: questionData.options.filter(opt => opt !== questionData.correct_answer)
+          })
 
-      if (error) throw error
+        if (error) throw error
+      }
 
-      showToast('success', 'Manual下書きを追加しました')
+      showToast('success', `${manualForm.questions.length}問のManual下書きを追加しました`)
       setIsManualDialogOpen(false)
-      setManualForm({ title: '', question: '', correct: '', distractors: ['', '', ''] })
+      setManualForm({ 
+        title: '', 
+        questions: [{
+          question: '',
+          options: ['', '', '', ''],
+          correct_answer: '',
+          explanation: '',
+          difficulty: 'medium'
+        }]
+      })
       loadData()
     } catch (error) {
       console.error('Manual追加エラー:', error)
@@ -497,6 +524,57 @@ export default function ContentHubPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 問題を追加
+  const addQuestion = () => {
+    setManualForm(prev => ({
+      ...prev,
+      questions: [...prev.questions, {
+        question: '',
+        options: ['', '', '', ''],
+        correct_answer: '',
+        explanation: '',
+        difficulty: 'medium'
+      }]
+    }))
+  }
+
+  // 問題を削除
+  const removeQuestion = (index: number) => {
+    if (manualForm.questions.length > 1) {
+      setManualForm(prev => ({
+        ...prev,
+        questions: prev.questions.filter((_, i) => i !== index)
+      }))
+    }
+  }
+
+  // 問題の更新
+  const updateQuestion = (index: number, field: string, value: any) => {
+    setManualForm(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === index ? { ...q, [field]: value } : q
+      )
+    }))
+  }
+
+  // 選択肢の更新
+  const updateOption = (questionIndex: number, optionIndex: number, value: string) => {
+    setManualForm(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) => 
+        i === questionIndex 
+          ? { 
+              ...q, 
+              options: q.options.map((opt, j) => 
+                j === optionIndex ? value : opt
+              )
+            }
+          : q
+      )
+    }))
   }
 
   // 記事からクイズ生成
@@ -1361,14 +1439,16 @@ export default function ContentHubPage() {
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
         >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl border">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Manual下書き追加</h3>
               <button onClick={() => setIsManualDialogOpen(false)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-4">
+            
+            <div className="space-y-6">
+              {/* タイトル */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
                 <input
@@ -1379,43 +1459,105 @@ export default function ContentHubPage() {
                   placeholder="例: システム利用マニュアル"
                 />
               </div>
+
+              {/* 問題一覧 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">設問</label>
-                <textarea
-                  value={manualForm.question}
-                  onChange={(e) => setManualForm({ ...manualForm, question: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                  placeholder="設問文を入力してください"
-                />
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">問題</label>
+                  <button
+                    onClick={addQuestion}
+                    className="flex items-center px-3 py-1 text-sm text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    問題を追加
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {manualForm.questions.map((question, questionIndex) => (
+                    <div key={questionIndex} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-700">問題 {questionIndex + 1}</h4>
+                        {manualForm.questions.length > 1 && (
+                          <button
+                            onClick={() => removeQuestion(questionIndex)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            削除
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {/* 設問 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">設問</label>
+                          <textarea
+                            value={question.question}
+                            onChange={(e) => updateQuestion(questionIndex, 'question', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            rows={2}
+                            placeholder="設問文を入力してください"
+                          />
+                        </div>
+
+                        {/* 選択肢 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">選択肢（4つ）</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {question.options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${questionIndex}`}
+                                  checked={option === question.correct_answer}
+                                  onChange={() => updateQuestion(questionIndex, 'correct_answer', option)}
+                                  className="text-blue-600"
+                                />
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder={`選択肢${optionIndex + 1}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 説明 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">正解の説明</label>
+                          <textarea
+                            value={question.explanation}
+                            onChange={(e) => updateQuestion(questionIndex, 'explanation', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            rows={2}
+                            placeholder="なぜその答えが正しいのか説明してください"
+                          />
+                        </div>
+
+                        {/* 難易度 */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">難易度</label>
+                          <select
+                            value={question.difficulty}
+                            onChange={(e) => updateQuestion(questionIndex, 'difficulty', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="easy">易しい</option>
+                            <option value="medium">普通</option>
+                            <option value="hard">難しい</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">正解</label>
-                <input
-                  type="text"
-                  value={manualForm.correct}
-                  onChange={(e) => setManualForm({ ...manualForm, correct: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="正解を入力してください"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">誤答肢（3つ）</label>
-                {manualForm.distractors.map((distractor, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={distractor}
-                    onChange={(e) => {
-                      const newDistractors = [...manualForm.distractors]
-                      newDistractors[index] = e.target.value
-                      setManualForm({ ...manualForm, distractors: newDistractors })
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md mb-2"
-                    placeholder={`誤答肢${index + 1}`}
-                  />
-                ))}
-              </div>
+
+              {/* ボタン */}
               <div className="flex gap-2">
                 <button
                   onClick={handleManualAdd}

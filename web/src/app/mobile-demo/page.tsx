@@ -1,137 +1,245 @@
 'use client'
 
-import { useState } from 'react'
-import { Clock, CheckCircle, Lock } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, RefreshCw, CheckCircle, Clock, AlertCircle, MessageSquare } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
-const mockQuizzes = [
-  {
-    id: '1',
-    title: '教育デジタル化推進法について',
-    source: 'News',
-    deadline: '2025-08-15',
-    questions: 3,
-    completed: false
-  },
-  {
-    id: '2', 
-    title: '情報セキュリティ基本方針 v2.0',
-    source: 'Policy',
-    deadline: '2025-08-20',
-    questions: 5,
-    completed: false,
-    requiresAttestation: true
-  },
-  {
-    id: '3',
-    title: 'リモートワーク FAQ',
-    source: 'Manual', 
-    deadline: '2025-08-25',
-    questions: 4,
-    completed: true
+interface Quiz {
+  id: string
+  title: string
+  deadline: string
+  target_segment: string
+  requires_attestation: boolean
+  status: string
+  created_at: string
+  question_count: number
+  estimated_time: number
+  assignment?: {
+    status: string
+    completed_at?: string
+    score?: number
   }
-]
+}
 
 export default function MobileDemoPage() {
-  const [quizzes, setQuizzes] = useState(mockQuizzes)
-  const [selectedQuiz, setSelectedQuiz] = useState<any>(null)
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const handleQuizPress = (quiz: any) => {
+  // クイズデータを取得
+  const fetchQuizzes = async () => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/quizzes?status=active')
+      const data = await response.json()
+      
+      if (data.success) {
+        setQuizzes(data.quizzes)
+      } else {
+        throw new Error(data.error || 'クイズの取得に失敗しました')
+      }
+    } catch (error) {
+      console.error('クイズ取得エラー:', error)
+      setError(error instanceof Error ? error.message : 'クイズの取得に失敗しました')
+      
+      // エラー時はモックデータを表示
+      setQuizzes([
+        {
+          id: '1',
+          title: '教育デジタル化推進法について',
+          deadline: '2025-08-15',
+          target_segment: 'all',
+          requires_attestation: false,
+          status: 'active',
+          created_at: '2025-08-01T10:00:00Z',
+          question_count: 3,
+          estimated_time: 5
+        },
+        {
+          id: '2', 
+          title: '情報セキュリティ基本方針 v2.0',
+          deadline: '2025-08-20',
+          target_segment: 'all',
+          requires_attestation: true,
+          status: 'active',
+          created_at: '2025-08-01T11:00:00Z',
+          question_count: 5,
+          estimated_time: 8
+        }
+      ])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchQuizzes()
+  }, [])
+
+  const handleQuizPress = (quiz: Quiz) => {
     setSelectedQuiz(quiz)
+    setIsModalOpen(true)
   }
 
   const closeModal = () => {
+    setIsModalOpen(false)
     setSelectedQuiz(null)
   }
 
-  const getSourceColor = (source: string) => {
-    switch (source) {
-      case 'News': return 'bg-blue-100 text-blue-800'
-      case 'Policy': return 'bg-green-100 text-green-800'  
-      case 'Manual': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const startQuiz = (quiz: Quiz) => {
+    console.log('クイズ開始:', quiz.id)
+    // 実際のアプリではここでクイズ画面に遷移
+    alert(`${quiz.title}を開始します！`)
+    closeModal()
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ja-JP', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const formatDeadline = (deadline: string) => {
+    const date = new Date(deadline)
+    return date.toLocaleDateString('ja-JP', {
+      month: 'numeric',
+      day: 'numeric'
+    })
+  }
+
+  const getStatusIcon = (quiz: Quiz) => {
+    if (quiz.assignment?.status === 'completed') {
+      return <CheckCircle className="h-5 w-5 text-green-600" />
     }
+    if (new Date(quiz.deadline) < new Date()) {
+      return <AlertCircle className="h-5 w-5 text-red-600" />
+    }
+    return <Clock className="h-5 w-5 text-blue-600" />
+  }
+
+  const getStatusText = (quiz: Quiz) => {
+    if (quiz.assignment?.status === 'completed') {
+      return '完了'
+    }
+    if (new Date(quiz.deadline) < new Date()) {
+      return '期限切れ'
+    }
+    return '未回答'
+  }
+
+  const getStatusColor = (quiz: Quiz) => {
+    if (quiz.assignment?.status === 'completed') {
+      return 'text-green-600'
+    }
+    if (new Date(quiz.deadline) < new Date()) {
+      return 'text-red-600'
+    }
+    return 'text-blue-600'
   }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Mobile Header */}
-      <div className="bg-indigo-600 text-white p-4 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-xl font-bold">OrgShift Quiz</h1>
-          <p className="text-sm opacity-90 mt-1">組織の理解を深めるクイズ</p>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-md mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="text-blue-600 hover:text-blue-800">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-900">新着クイズ</h1>
+            <button
+              onClick={fetchQuizzes}
+              disabled={isLoading}
+              className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? '更新中...' : '更新'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">新着クイズ</h2>
-        
-        <div className="space-y-3">
-          {quizzes.map((quiz) => (
-            <div
-              key={quiz.id}
-              className={`bg-white rounded-lg p-4 shadow-sm border cursor-pointer transition-all duration-200 hover:shadow-md ${
-                quiz.completed ? 'opacity-70' : ''
-              }`}
-              onClick={() => handleQuizPress(quiz)}
-            >
-              {/* Header */}
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-semibold text-gray-900 flex-1 mr-3 leading-tight">
-                  {quiz.title}
-                </h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSourceColor(quiz.source)}`}>
-                  {quiz.source}
-                </span>
-              </div>
-              
-              {/* Body */}
-              <div className="text-sm text-gray-600 mb-3">
-                <div className="flex items-center gap-4">
-                  <span>{quiz.questions}問</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    期限: {quiz.deadline}
-                  </span>
-                </div>
-                {quiz.requiresAttestation && (
-                  <div className="flex items-center gap-1 text-red-600 mt-1">
-                    <Lock className="h-3 w-3" />
-                    <span className="font-medium">同意必須</span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Footer */}
-              <div className="flex justify-end">
-                {quiz.completed ? (
-                  <div className="flex items-center gap-1 text-green-600 font-medium text-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    完了
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-orange-600 font-medium text-sm">
-                    <Clock className="h-4 w-4" />
-                    未回答
-                  </div>
-                )}
-              </div>
+      <div className="max-w-md mx-auto px-4 py-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : quizzes.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <MessageSquare className="h-16 w-16 mx-auto" />
             </div>
-          ))}
-        </div>
+            <p className="text-gray-600">新着クイズはありません</p>
+            <p className="text-sm text-gray-500 mt-2">配信ビルダーでクイズを配信してください</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {quizzes.map((quiz) => (
+              <div
+                key={quiz.id}
+                onClick={() => handleQuizPress(quiz)}
+                className="bg-white rounded-lg shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">
+                      {quiz.title}
+                    </h3>
+                    <div className="flex items-center text-sm text-gray-500 space-x-4">
+                      <span>{quiz.question_count}問</span>
+                      <span>約{quiz.estimated_time}分</span>
+                      <span>期限: {formatDeadline(quiz.deadline)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-3">
+                    {getStatusIcon(quiz)}
+                    <span className={`text-sm font-medium ${getStatusColor(quiz)}`}>
+                      {getStatusText(quiz)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>配信日: {formatDate(quiz.created_at)}</span>
+                  {quiz.requires_attestation && (
+                    <span className="text-red-600 font-medium">🔒 同意必須</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Modal */}
-      {selectedQuiz && (
+      {/* Quiz Detail Modal */}
+      {isModalOpen && selectedQuiz && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-lg sm:rounded-lg p-6 m-0 sm:m-4 w-full sm:w-96">
+          <div className="bg-white rounded-t-lg sm:rounded-lg p-6 m-0 sm:m-4 w-full sm:w-96 max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-2">{selectedQuiz.title}</h3>
-            <div className="text-gray-600 mb-4">
-              <p>{selectedQuiz.questions}問のクイズです。</p>
-              <p>出典: {selectedQuiz.source}</p>
-              <p>期限: {selectedQuiz.deadline}</p>
-              {selectedQuiz.requiresAttestation && (
+            <div className="text-gray-600 mb-4 space-y-2">
+              <p>{selectedQuiz.question_count}問のクイズです。</p>
+              <p>推定時間: 約{selectedQuiz.estimated_time}分</p>
+              <p>期限: {formatDeadline(selectedQuiz.deadline)}</p>
+              {selectedQuiz.requires_attestation && (
                 <p className="text-red-600 font-medium">🔒 このクイズは同意が必要です</p>
+              )}
+              {selectedQuiz.assignment?.status === 'completed' && (
+                <p className="text-green-600 font-medium">✓ 完了済み (スコア: {selectedQuiz.assignment.score}点)</p>
               )}
             </div>
             <div className="flex gap-3">
@@ -141,15 +249,14 @@ export default function MobileDemoPage() {
               >
                 キャンセル
               </button>
-              <button
-                onClick={() => {
-                  console.log('Quiz started:', selectedQuiz.id)
-                  closeModal()
-                }}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                開始
-              </button>
+              {selectedQuiz.assignment?.status !== 'completed' && (
+                <button
+                  onClick={() => startQuiz(selectedQuiz)}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  開始
+                </button>
+              )}
             </div>
           </div>
         </div>

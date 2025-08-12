@@ -39,6 +39,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [isQuizModalVisible, setIsQuizModalVisible] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<{[key: string]: string}>({});
+  const [quizResults, setQuizResults] = useState<any>(null);
+  const [isQuizActive, setIsQuizActive] = useState(false);
 
   // 初期化
   useEffect(() => {
@@ -164,7 +168,8 @@ export default function App() {
         questions: quiz.questions?.length || 0,
         completed: false, // 完了状態は後で実装
         requiresAttestation: quiz.requires_attestation,
-        created_at: quiz.created_at
+        created_at: quiz.created_at,
+        questionData: quiz.questions || [] // 質問データを追加
       }));
       
       setQuizzes(formattedQuizzes);
@@ -194,6 +199,94 @@ export default function App() {
     console.log('クイズがタップされました:', quiz);
     setSelectedQuiz(quiz);
     setIsQuizModalVisible(true);
+    setIsQuizActive(false);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setQuizResults(null);
+  };
+
+  // クイズ開始
+  const startQuiz = () => {
+    if (!selectedQuiz || !selectedQuiz.questionData || selectedQuiz.questionData.length === 0) {
+      Alert.alert('エラー', '質問データがありません');
+      return;
+    }
+    setIsQuizActive(true);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setQuizResults(null);
+  };
+
+  // 回答選択
+  const selectAnswer = (questionId: string, answer: string) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  // 次の質問へ
+  const nextQuestion = () => {
+    if (currentQuestionIndex < selectedQuiz.questionData.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // 最後の質問の場合は結果を表示
+      calculateResults();
+    }
+  };
+
+  // 前の質問へ
+  const previousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  // 結果計算
+  const calculateResults = () => {
+    if (!selectedQuiz || !selectedQuiz.questionData) return;
+
+    let correctCount = 0;
+    const results = selectedQuiz.questionData.map((question: any, index: number) => {
+      const selectedAnswer = selectedAnswers[question.id];
+      const isCorrect = selectedAnswer === question.correct_answer;
+      if (isCorrect) correctCount++;
+      
+      return {
+        question: question.question_text,
+        selectedAnswer,
+        correctAnswer: question.correct_answer,
+        isCorrect,
+        explanation: question.explanation
+      };
+    });
+
+    const score = Math.round((correctCount / selectedQuiz.questionData.length) * 100);
+    
+    setQuizResults({
+      score,
+      correctCount,
+      totalQuestions: selectedQuiz.questionData.length,
+      results
+    });
+  };
+
+  // クイズをリセット
+  const resetQuiz = () => {
+    setIsQuizActive(false);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setQuizResults(null);
+  };
+
+  // クイズを閉じる
+  const closeQuiz = () => {
+    setIsQuizModalVisible(false);
+    setIsQuizActive(false);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setQuizResults(null);
+    setSelectedQuiz(null);
   };
 
   return (
@@ -301,43 +394,204 @@ export default function App() {
         visible={isQuizModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setIsQuizModalVisible(false)}
+        onRequestClose={closeQuiz}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity
-              onPress={() => setIsQuizModalVisible(false)}
+              onPress={closeQuiz}
               style={styles.closeButton}
             >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>クイズ詳細</Text>
+            <Text style={styles.modalTitle}>
+              {isQuizActive ? 'クイズ中' : quizResults ? '結果' : 'クイズ詳細'}
+            </Text>
           </View>
           
           {selectedQuiz && (
             <ScrollView style={styles.modalContent}>
-              <View style={styles.quizDetailCard}>
-                <Text style={styles.quizDetailTitle}>{selectedQuiz.title}</Text>
-                <View style={styles.quizDetailInfo}>
-                  <Text style={styles.quizDetailText}>問題数: {selectedQuiz.questions}問</Text>
-                  <Text style={styles.quizDetailText}>出典: {selectedQuiz.source}</Text>
-                  <Text style={styles.quizDetailText}>期限: {selectedQuiz.deadline}</Text>
-                  {selectedQuiz.requiresAttestation && (
-                    <Text style={styles.quizDetailText}>🔒 同意必須</Text>
+              {!isQuizActive && !quizResults && (
+                // クイズ詳細表示
+                <View style={styles.quizDetailCard}>
+                  <Text style={styles.quizDetailTitle}>{selectedQuiz.title}</Text>
+                  <View style={styles.quizDetailInfo}>
+                    <Text style={styles.quizDetailText}>問題数: {selectedQuiz.questions}問</Text>
+                    <Text style={styles.quizDetailText}>出典: {selectedQuiz.source}</Text>
+                    <Text style={styles.quizDetailText}>期限: {selectedQuiz.deadline}</Text>
+                    {selectedQuiz.requiresAttestation && (
+                      <Text style={styles.quizDetailText}>🔒 同意必須</Text>
+                    )}
+                  </View>
+                  
+                  {selectedQuiz.questionData && selectedQuiz.questionData.length > 0 ? (
+                    <View style={styles.questionsPreview}>
+                      <Text style={styles.questionsPreviewTitle}>質問プレビュー:</Text>
+                      {selectedQuiz.questionData.slice(0, 3).map((question: any, index: number) => (
+                        <View key={question.id} style={styles.questionPreviewItem}>
+                          <Text style={styles.questionPreviewText}>
+                            {index + 1}. {question.question_text}
+                          </Text>
+                          <Text style={styles.questionPreviewOptions}>
+                            選択肢: {question.options?.length || 0}個
+                          </Text>
+                        </View>
+                      ))}
+                      {selectedQuiz.questionData.length > 3 && (
+                        <Text style={styles.questionPreviewMore}>
+                          他 {selectedQuiz.questionData.length - 3} 問...
+                        </Text>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.noQuestionsWarning}>
+                      <Text style={styles.noQuestionsText}>⚠️ 質問データがありません</Text>
+                      <Text style={styles.noQuestionsSubText}>配信ビルダーで質問を作成してください</Text>
+                    </View>
                   )}
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.startQuizButton,
+                      (!selectedQuiz.questionData || selectedQuiz.questionData.length === 0) && styles.disabledButton
+                    ]}
+                    onPress={startQuiz}
+                    disabled={!selectedQuiz.questionData || selectedQuiz.questionData.length === 0}
+                  >
+                    <Text style={styles.startQuizButtonText}>クイズを開始</Text>
+                  </TouchableOpacity>
                 </View>
-                
-                <TouchableOpacity
-                  style={styles.startQuizButton}
-                  onPress={() => {
-                    console.log('クイズ開始:', selectedQuiz.id);
-                    Alert.alert('クイズ開始', 'この機能は現在開発中です。');
-                    setIsQuizModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.startQuizButtonText}>クイズを開始</Text>
-                </TouchableOpacity>
-              </View>
+              )}
+
+              {isQuizActive && selectedQuiz.questionData && (
+                // クイズ実行中
+                <View style={styles.quizActiveCard}>
+                  <View style={styles.quizProgress}>
+                    <Text style={styles.quizProgressText}>
+                      問題 {currentQuestionIndex + 1} / {selectedQuiz.questionData.length}
+                    </Text>
+                    <View style={styles.progressBar}>
+                      <View 
+                        style={[
+                          styles.progressFill, 
+                          { width: `${((currentQuestionIndex + 1) / selectedQuiz.questionData.length) * 100}%` }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.currentQuestion}>
+                    <Text style={styles.questionText}>
+                      {selectedQuiz.questionData[currentQuestionIndex].question_text}
+                    </Text>
+                    
+                    <View style={styles.optionsContainer}>
+                      {selectedQuiz.questionData[currentQuestionIndex].options?.map((option: string, optionIndex: number) => (
+                        <TouchableOpacity
+                          key={optionIndex}
+                          style={[
+                            styles.optionButton,
+                            selectedAnswers[selectedQuiz.questionData[currentQuestionIndex].id] === option && styles.selectedOption
+                          ]}
+                          onPress={() => selectAnswer(selectedQuiz.questionData[currentQuestionIndex].id, option)}
+                        >
+                          <Text style={[
+                            styles.optionText,
+                            selectedAnswers[selectedQuiz.questionData[currentQuestionIndex].id] === option && styles.selectedOptionText
+                          ]}>
+                            {String.fromCharCode(65 + optionIndex)}. {option}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.quizNavigation}>
+                    {currentQuestionIndex > 0 && (
+                      <TouchableOpacity
+                        style={styles.navButton}
+                        onPress={previousQuestion}
+                      >
+                        <Text style={styles.navButtonText}>← 前の問題</Text>
+                      </TouchableOpacity>
+                    )}
+                    
+                    <TouchableOpacity
+                      style={[
+                        styles.navButton,
+                        styles.primaryNavButton,
+                        !selectedAnswers[selectedQuiz.questionData[currentQuestionIndex].id] && styles.disabledButton
+                      ]}
+                      onPress={nextQuestion}
+                      disabled={!selectedAnswers[selectedQuiz.questionData[currentQuestionIndex].id]}
+                    >
+                      <Text style={styles.navButtonText}>
+                        {currentQuestionIndex === selectedQuiz.questionData.length - 1 ? '結果を見る' : '次の問題 →'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {quizResults && (
+                // クイズ結果表示
+                <View style={styles.resultsCard}>
+                  <Text style={styles.resultsTitle}>クイズ結果</Text>
+                  
+                  <View style={styles.scoreContainer}>
+                    <Text style={styles.scoreText}>{quizResults.score}点</Text>
+                    <Text style={styles.scoreDetail}>
+                      {quizResults.correctCount} / {quizResults.totalQuestions} 問正解
+                    </Text>
+                  </View>
+
+                  <View style={styles.resultsList}>
+                    <Text style={styles.resultsListTitle}>詳細結果:</Text>
+                    {quizResults.results.map((result: any, index: number) => (
+                      <View key={index} style={styles.resultItem}>
+                        <Text style={styles.resultQuestionText}>
+                          {index + 1}. {result.question}
+                        </Text>
+                        <View style={styles.resultAnswerInfo}>
+                          <Text style={styles.resultAnswerText}>
+                            あなたの回答: {result.selectedAnswer || '未回答'}
+                          </Text>
+                          <Text style={styles.resultAnswerText}>
+                            正解: {result.correctAnswer}
+                          </Text>
+                          <Text style={[
+                            styles.resultStatus,
+                            result.isCorrect ? styles.correctStatus : styles.incorrectStatus
+                          ]}>
+                            {result.isCorrect ? '✅ 正解' : '❌ 不正解'}
+                          </Text>
+                        </View>
+                        {result.explanation && (
+                          <Text style={styles.resultExplanation}>
+                            解説: {result.explanation}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.resultsActions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={resetQuiz}
+                    >
+                      <Text style={styles.actionButtonText}>再挑戦</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.primaryActionButton]}
+                      onPress={closeQuiz}
+                    >
+                      <Text style={styles.actionButtonText}>完了</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </ScrollView>
           )}
         </View>
@@ -585,6 +839,58 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 10,
   },
+  questionsPreview: {
+    marginBottom: 30,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  questionsPreviewTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  questionPreviewItem: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: 'white',
+    borderRadius: 6,
+  },
+  questionPreviewText: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 6,
+  },
+  questionPreviewOptions: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  questionPreviewMore: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  noQuestionsWarning: {
+    marginBottom: 30,
+    padding: 16,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  noQuestionsText: {
+    fontSize: 16,
+    color: '#92400e',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  noQuestionsSubText: {
+    fontSize: 14,
+    color: '#92400e',
+    textAlign: 'center',
+  },
   startQuizButton: {
     backgroundColor: '#4f46e5',
     paddingVertical: 15,
@@ -595,6 +901,202 @@ const styles = StyleSheet.create({
   startQuizButtonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
+  // クイズ実行中スタイル
+  quizActiveCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  quizProgress: {
+    marginBottom: 20,
+  },
+  quizProgressText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4f46e5',
+    borderRadius: 4,
+  },
+  currentQuestion: {
+    marginBottom: 30,
+  },
+  questionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionButton: {
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: 'white',
+  },
+  selectedOption: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#e0e7ff',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  selectedOptionText: {
+    color: '#4f46e5',
+    fontWeight: '600',
+  },
+  quizNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  navButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#6b7280',
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  primaryNavButton: {
+    backgroundColor: '#4f46e5',
+  },
+  navButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // 結果表示スタイル
+  resultsCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  resultsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  scoreContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+    padding: 20,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+  },
+  scoreText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#4f46e5',
+    marginBottom: 8,
+  },
+  scoreDetail: {
+    fontSize: 18,
+    color: '#6b7280',
+  },
+  resultsList: {
+    marginBottom: 30,
+  },
+  resultsListTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  resultItem: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  resultQuestionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  resultAnswerInfo: {
+    marginBottom: 8,
+  },
+  resultAnswerText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  resultStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  correctStatus: {
+    color: '#059669',
+  },
+  incorrectStatus: {
+    color: '#dc2626',
+  },
+  resultExplanation: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: 'white',
+    borderRadius: 6,
+  },
+  resultsActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  actionButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    backgroundColor: '#6b7280',
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  primaryActionButton: {
+    backgroundColor: '#4f46e5',
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
