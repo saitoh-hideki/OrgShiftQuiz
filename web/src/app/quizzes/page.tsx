@@ -1,93 +1,373 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Search, Filter, Eye, Edit, Trash2, BarChart3, Users, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, Search, Filter, Eye, Edit, Trash2, BarChart3, Users, Clock, CheckCircle, AlertTriangle, Play, Pause, CheckCircle2, XCircle, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
+interface Quiz {
+  id: string
+  title: string
+  description?: string
+  source: string
+  questions: number
+  status: string
+  created: string
+  deadline?: string
+  totalResponses: number
+  responseRate: number
+  avgScore: number
+  difficulty: string
+  requiresAttestation: boolean
+  targetSegment: string
+  notificationEnabled: boolean
+  publishedAt?: string
+  sourceMix: string[]
+  latestResponseAt?: string // 追加: 最新の回答日時
+  totalAssignments?: number // 追加: 総割り当て数
+}
+
+interface QuizStats {
+  total: number
+  active: number
+  completed: number
+  draft: number
+  pending: number
+}
+
+// クイズ詳細モーダルコンポーネント
+function QuizDetailModal({ quiz, isOpen, onClose }: { quiz: Quiz | null, isOpen: boolean, onClose: () => void }) {
+  if (!isOpen || !quiz) return null
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('ja-JP')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">クイズ詳細</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">基本情報</h3>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">タイトル</dt>
+                  <dd className="text-sm text-gray-900">{quiz.title}</dd>
+                </div>
+                {quiz.description && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">説明</dt>
+                    <dd className="text-sm text-gray-900">{quiz.description}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">ソース</dt>
+                  <dd className="text-sm text-gray-900">{quiz.source}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">質問数</dt>
+                  <dd className="text-sm text-gray-900">{quiz.questions}問</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">難易度</dt>
+                  <dd className="text-sm text-gray-900">{quiz.difficulty}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">対象セグメント</dt>
+                  <dd className="text-sm text-gray-900">{quiz.targetSegment}</dd>
+                </div>
+              </dl>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">配信設定</h3>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">ステータス</dt>
+                  <dd className="text-sm text-gray-900">{quiz.status}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">作成日</dt>
+                  <dd className="text-sm text-gray-900">{formatDate(quiz.created)}</dd>
+                </div>
+                {quiz.deadline && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">期限</dt>
+                    <dd className="text-sm text-gray-900">{formatDate(quiz.deadline)}</dd>
+                  </div>
+                )}
+                {quiz.publishedAt && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">配信開始日</dt>
+                    <dd className="text-sm text-gray-900">{formatDate(quiz.publishedAt)}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">同意必須</dt>
+                  <dd className="text-sm text-gray-900">{quiz.requiresAttestation ? 'はい' : 'いいえ'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">通知</dt>
+                  <dd className="text-sm text-gray-900">{quiz.notificationEnabled ? '有効' : '無効'}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+          
+          <div className="mt-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">回答状況</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-600">{quiz.totalResponses}</div>
+                <div className="text-sm text-gray-600">総回答数</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-600">{quiz.responseRate}%</div>
+                <div className="text-sm text-gray-600">回答率</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-orange-600">{quiz.avgScore}点</div>
+                <div className="text-sm text-gray-600">平均スコア</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-purple-600">{quiz.totalAssignments || 0}</div>
+                <div className="text-sm text-gray-600">総割り当て数</div>
+              </div>
+            </div>
+            {quiz.latestResponseAt && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <div className="text-sm text-blue-800">
+                  <strong>最新回答:</strong> {formatDate(quiz.latestResponseAt)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// クイズ分析モーダルコンポーネント
+function QuizAnalyticsModal({ quiz, isOpen, onClose }: { quiz: Quiz | null, isOpen: boolean, onClose: () => void }) {
+  if (!isOpen || !quiz) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">クイズ分析</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{quiz.title}</h3>
+            <p className="text-sm text-gray-600">詳細な分析データ</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 mb-3">回答分布</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">総回答数</span>
+                  <span className="text-sm font-medium">{quiz.totalResponses}人</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">回答率</span>
+                  <span className="text-sm font-medium">{quiz.responseRate}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">平均スコア</span>
+                  <span className="text-sm font-medium">{quiz.avgScore}点</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 mb-3">クイズ情報</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">質問数</span>
+                  <span className="text-sm font-medium">{quiz.questions}問</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">難易度</span>
+                  <span className="text-sm font-medium">{quiz.difficulty}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">ソース</span>
+                  <span className="text-sm font-medium">{quiz.source}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h4 className="font-medium text-gray-900 mb-3">スコア分布</h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="text-center text-gray-500">
+                スコア分布の詳細データは現在開発中です
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function QuizzesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [stats, setStats] = useState<QuizStats>({ total: 0, active: 0, completed: 0, draft: 0, pending: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false)
 
-  const mockQuizzes = [
-    {
-      id: 1,
-      title: '教育デジタル化推進法について',
-      source: 'News',
-      questions: 3,
-      status: 'active',
-      created: '2025-08-10',
-      deadline: '2025-08-15',
-      totalResponses: 142,
-      responseRate: 91,
-      avgScore: 78,
-      difficulty: 'medium'
-    },
-    {
-      id: 2,
-      title: '情報セキュリティ基本方針 v2.1',
-      source: 'Policy',
-      questions: 5,
-      status: 'active',
-      created: '2025-08-09',
-      deadline: '2025-08-20',
-      totalResponses: 89,
-      responseRate: 57,
-      avgScore: 85,
-      difficulty: 'hard',
-      requiresAttestation: true
-    },
-    {
-      id: 3,
-      title: 'システム利用マニュアル',
-      source: 'Manual',
-      questions: 4,
-      status: 'completed',
-      created: '2025-08-05',
-      deadline: '2025-08-12',
-      totalResponses: 156,
-      responseRate: 100,
-      avgScore: 91,
-      difficulty: 'easy'
-    },
-    {
-      id: 4,
-      title: 'リモートワーク規程 更新版',
-      source: 'Policy',
-      questions: 3,
-      status: 'draft',
-      created: '2025-08-11',
-      deadline: '2025-08-25',
-      totalResponses: 0,
-      responseRate: 0,
-      avgScore: 0,
-      difficulty: 'medium'
-    },
-    {
-      id: 5,
-      title: '自治体DX推進計画の改訂について',
-      source: 'News',
-      questions: 4,
-      status: 'pending_approval',
-      created: '2025-08-08',
-      deadline: '2025-08-18',
-      totalResponses: 0,
-      responseRate: 0,
-      avgScore: 0,
-      difficulty: 'medium'
+  // クイズデータを取得
+  const fetchQuizzes = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const params = new URLSearchParams()
+      if (statusFilter !== 'all') params.append('status', statusFilter)
+      if (sourceFilter !== 'all') params.append('source', sourceFilter)
+      if (searchTerm) params.append('search', searchTerm)
+
+      console.log('Fetching quizzes with params:', params.toString())
+      
+      const response = await fetch(`/api/quizzes?${params.toString()}`)
+      console.log('Response status:', response.status)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error response:', errorData)
+        throw new Error(`クイズの取得に失敗しました: ${response.status} - ${errorData.details || errorData.error || 'Unknown error'}`)
+      }
+      
+      const data = await response.json()
+      console.log('API Response data:', data)
+      
+      setQuizzes(data.quizzes || [])
+      setStats(data.stats || { total: 0, active: 0, completed: 0, draft: 0, pending: 0 })
+    } catch (err) {
+      console.error('Fetch error:', err)
+      setError(err instanceof Error ? err.message : 'エラーが発生しました')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  // クイズのステータスを更新
+  const updateQuizStatus = async (quizId: string, action: string) => {
+    try {
+      const response = await fetch('/api/quizzes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiz_id: quizId, action })
+      })
+
+      if (!response.ok) throw new Error('クイズの更新に失敗しました')
+      
+      // 成功したらデータを再取得
+      await fetchQuizzes()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'クイズの更新に失敗しました')
+    }
+  }
+
+  // クイズを削除
+  const deleteQuiz = async (quizId: string) => {
+    if (!confirm('このクイズを削除しますか？この操作は取り消せません。')) return
+
+    try {
+      const response = await fetch(`/api/quizzes?quiz_id=${quizId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) throw new Error('クイズの削除に失敗しました')
+      
+      // 成功したらデータを再取得
+      await fetchQuizzes()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'クイズの削除に失敗しました')
+    }
+  }
+
+  // 詳細モーダルを開く
+  const openDetailModal = (quiz: Quiz) => {
+    setSelectedQuiz(quiz)
+    setDetailModalOpen(true)
+  }
+
+  // 分析モーダルを開く
+  const openAnalyticsModal = (quiz: Quiz) => {
+    setSelectedQuiz(quiz)
+    setAnalyticsModalOpen(true)
+  }
+
+  // 初期データ取得
+  useEffect(() => {
+    fetchQuizzes()
+  }, [])
+
+  // フィルター変更時にデータを再取得
+  useEffect(() => {
+    fetchQuizzes()
+  }, [statusFilter, sourceFilter])
+
+  // 検索時にデータを再取得（デバウンス）
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== '') {
+        fetchQuizzes()
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
         return <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full flex items-center"><CheckCircle className="h-3 w-3 mr-1" />配信中</span>
       case 'completed':
-        return <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full flex items-center"><CheckCircle className="h-3 w-3 mr-1" />完了</span>
+        return <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full flex items-center"><CheckCircle2 className="h-3 w-3 mr-1" />完了</span>
       case 'draft':
         return <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full flex items-center"><Edit className="h-3 w-3 mr-1" />下書き</span>
       case 'pending_approval':
         return <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full flex items-center"><Clock className="h-3 w-3 mr-1" />承認待ち</span>
+      case 'paused':
+        return <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full flex items-center"><Pause className="h-3 w-3 mr-1" />一時停止</span>
+      case 'rejected':
+        return <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full flex items-center"><XCircle className="h-3 w-3 mr-1" />却下</span>
       default:
         return <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{status}</span>
     }
@@ -106,18 +386,37 @@ export default function QuizzesPage() {
     }
   }
 
-  const filteredQuizzes = mockQuizzes.filter(quiz => {
-    const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || quiz.status === statusFilter
-    const matchesSource = sourceFilter === 'all' || quiz.source === sourceFilter
-    return matchesSearch && matchesStatus && matchesSource
-  })
+  const getDifficultyText = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy':
+        return '易'
+      case 'medium':
+        return '中'
+      case 'hard':
+        return '難'
+      default:
+        return difficulty
+    }
+  }
 
-  const stats = {
-    total: mockQuizzes.length,
-    active: mockQuizzes.filter(q => q.status === 'active').length,
-    completed: mockQuizzes.filter(q => q.status === 'completed').length,
-    pending: mockQuizzes.filter(q => q.status === 'pending_approval').length
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('ja-JP')
+  }
+
+  if (loading && quizzes.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <div className="text-gray-600">クイズデータを読み込み中...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -133,8 +432,18 @@ export default function QuizzesPage() {
           <p className="text-gray-600 mt-2">配信済みクイズの一覧と詳細分析</p>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+              <span className="text-red-800">{error}</span>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm border">
             <div className="flex items-center">
               <BarChart3 className="h-8 w-8 text-blue-600" />
@@ -161,6 +470,16 @@ export default function QuizzesPage() {
               <div className="ml-4">
                 <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
                 <div className="text-sm text-gray-600">完了</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-6 shadow-sm border">
+            <div className="flex items-center">
+              <Edit className="h-8 w-8 text-gray-600" />
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">{stats.draft}</div>
+                <div className="text-sm text-gray-600">下書き</div>
               </div>
             </div>
           </div>
@@ -200,6 +519,8 @@ export default function QuizzesPage() {
               <option value="completed">完了</option>
               <option value="draft">下書き</option>
               <option value="pending_approval">承認待ち</option>
+              <option value="paused">一時停止</option>
+              <option value="rejected">却下</option>
             </select>
             
             <select
@@ -208,9 +529,9 @@ export default function QuizzesPage() {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">すべてのソース</option>
-              <option value="News">News</option>
-              <option value="Policy">Policy</option>
-              <option value="Manual">Manual</option>
+              <option value="news">News</option>
+              <option value="policy">Policy</option>
+              <option value="manual">Manual</option>
             </select>
           </div>
         </div>
@@ -219,7 +540,7 @@ export default function QuizzesPage() {
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">
-              クイズ一覧 ({filteredQuizzes.length}件)
+              クイズ一覧 ({quizzes.length}件)
             </h2>
           </div>
           
@@ -237,7 +558,7 @@ export default function QuizzesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredQuizzes.map((quiz) => (
+                {quizzes.map((quiz) => (
                   <tr key={quiz.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -245,12 +566,17 @@ export default function QuizzesPage() {
                         <div className="text-sm text-gray-500">
                           {quiz.questions}問 • 
                           <span className={`ml-1 ${getDifficultyColor(quiz.difficulty)}`}>
-                            {quiz.difficulty === 'easy' ? '易' : quiz.difficulty === 'medium' ? '中' : '難'}
+                            {getDifficultyText(quiz.difficulty)}
                           </span>
                           {quiz.requiresAttestation && (
                             <span className="ml-2 text-xs text-red-600">🔒 同意必須</span>
                           )}
                         </div>
+                        {quiz.description && (
+                          <div className="text-xs text-gray-400 mt-1 line-clamp-2">
+                            {quiz.description}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -299,24 +625,100 @@ export default function QuizzesPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{quiz.deadline}</div>
-                      <div className="text-xs text-gray-500">作成: {quiz.created}</div>
+                      <div className="text-sm text-gray-900">
+                        {quiz.deadline ? formatDate(quiz.deadline) : '期限なし'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        作成: {formatDate(quiz.created)}
+                      </div>
+                      {quiz.publishedAt && (
+                        <div className="text-xs text-green-600">
+                          配信: {formatDate(quiz.publishedAt)}
+                        </div>
+                      )}
+                      {quiz.latestResponseAt && (
+                        <div className="text-xs text-blue-600">
+                          最新回答: {formatDate(quiz.latestResponseAt)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
-                        <button className="p-1 text-blue-600 hover:text-blue-800">
+                        <button 
+                          className="p-1 text-blue-600 hover:text-blue-800"
+                          title="詳細表示"
+                          onClick={() => openDetailModal(quiz)}
+                        >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button className="p-1 text-green-600 hover:text-green-800">
+                        <button 
+                          className="p-1 text-green-600 hover:text-green-800"
+                          title="分析"
+                          onClick={() => openAnalyticsModal(quiz)}
+                        >
                           <BarChart3 className="h-4 w-4" />
                         </button>
+                        
+                        {/* ステータスに応じたアクションボタン */}
                         {quiz.status === 'draft' && (
                           <>
-                            <button className="p-1 text-orange-600 hover:text-orange-800">
+                            <button 
+                              className="p-1 text-green-600 hover:text-green-800"
+                              onClick={() => updateQuizStatus(quiz.id, 'publish')}
+                              title="配信開始"
+                            >
+                              <Play className="h-4 w-4" />
+                            </button>
+                            <button 
+                              className="p-1 text-orange-600 hover:text-orange-800"
+                              title="編集"
+                            >
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button className="p-1 text-red-600 hover:text-red-800">
+                            <button 
+                              className="p-1 text-red-600 hover:text-red-800"
+                              onClick={() => deleteQuiz(quiz.id)}
+                              title="削除"
+                            >
                               <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {quiz.status === 'pending_approval' && (
+                          <>
+                            <button 
+                              className="p-1 text-green-600 hover:text-green-800"
+                              onClick={() => updateQuizStatus(quiz.id, 'approve')}
+                              title="承認"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                            <button 
+                              className="p-1 text-red-600 hover:text-red-800"
+                              onClick={() => updateQuizStatus(quiz.id, 'reject')}
+                              title="却下"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {quiz.status === 'active' && (
+                          <>
+                            <button 
+                              className="p-1 text-yellow-600 hover:text-yellow-800"
+                              onClick={() => updateQuizStatus(quiz.id, 'pause')}
+                              title="一時停止"
+                            >
+                              <Pause className="h-4 w-4" />
+                            </button>
+                            <button 
+                              className="p-1 text-blue-600 hover:text-blue-800"
+                              onClick={() => updateQuizStatus(quiz.id, 'complete')}
+                              title="完了"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
                             </button>
                           </>
                         )}
@@ -328,7 +730,7 @@ export default function QuizzesPage() {
             </table>
           </div>
           
-          {filteredQuizzes.length === 0 && (
+          {quizzes.length === 0 && !loading && (
             <div className="p-12 text-center text-gray-500">
               <AlertTriangle className="h-12 w-12 mx-auto mb-4" />
               <div className="text-lg font-medium mb-2">該当するクイズがありません</div>
@@ -337,6 +739,18 @@ export default function QuizzesPage() {
           )}
         </div>
       </div>
+
+      {/* モーダル */}
+      <QuizDetailModal 
+        quiz={selectedQuiz} 
+        isOpen={detailModalOpen} 
+        onClose={() => setDetailModalOpen(false)} 
+      />
+      <QuizAnalyticsModal 
+        quiz={selectedQuiz} 
+        isOpen={analyticsModalOpen} 
+        onClose={() => setAnalyticsModalOpen(false)} 
+      />
     </div>
   )
 }

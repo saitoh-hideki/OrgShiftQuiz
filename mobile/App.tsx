@@ -206,15 +206,74 @@ export default function App() {
   };
 
   // クイズ開始
-  const startQuiz = () => {
+  const startQuiz = async () => {
     if (!selectedQuiz || !selectedQuiz.questionData || selectedQuiz.questionData.length === 0) {
       Alert.alert('エラー', '質問データがありません');
       return;
     }
-    setIsQuizActive(true);
-    setCurrentQuestionIndex(0);
-    setSelectedAnswers({});
-    setQuizResults(null);
+
+    try {
+      // クイズ割り当てレコードを作成
+      await createQuizAssignment();
+      
+      setIsQuizActive(true);
+      setCurrentQuestionIndex(0);
+      setSelectedAnswers({});
+      setQuizResults(null);
+    } catch (error) {
+      console.error('クイズ開始エラー:', error);
+      Alert.alert('エラー', 'クイズの開始に失敗しました');
+    }
+  };
+
+  // クイズ割り当てレコードを作成
+  const createQuizAssignment = async () => {
+    if (!selectedQuiz) return;
+
+    try {
+      const testUserId = '00000000-0000-0000-0000-000000000001';
+
+      // 既存の割り当てがあるかチェック
+      const { data: existingAssignment, error: checkError } = await supabase
+        .from('quiz_assignments')
+        .select('*')
+        .eq('quiz_id', selectedQuiz.id)
+        .eq('user_id', testUserId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('割り当てチェックエラー:', checkError);
+        throw new Error(`割り当てチェックエラー: ${checkError.message}`);
+      }
+
+      if (existingAssignment) {
+        console.log('既存の割り当てがあります:', existingAssignment.id);
+        return;
+      }
+
+      // 新しい割り当てを作成
+      const { data: assignment, error: createError } = await supabase
+        .from('quiz_assignments')
+        .insert({
+          quiz_id: selectedQuiz.id,
+          user_id: testUserId,
+          status: 'in_progress',
+          assigned_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('割り当て作成エラー:', createError);
+        throw new Error(`割り当て作成エラー: ${createError.message}`);
+      }
+
+      console.log('クイズ割り当てが作成されました:', assignment.id);
+
+    } catch (error) {
+      console.error('割り当て作成エラー:', error);
+      throw error;
+    }
   };
 
   // 回答選択
@@ -243,7 +302,7 @@ export default function App() {
   };
 
   // 結果計算
-  const calculateResults = () => {
+  const calculateResults = async () => {
     if (!selectedQuiz || !selectedQuiz.questionData) return;
 
     let correctCount = 0;
@@ -263,12 +322,108 @@ export default function App() {
 
     const score = Math.round((correctCount / selectedQuiz.questionData.length) * 100);
     
-    setQuizResults({
+    const quizResult = {
       score,
       correctCount,
       totalQuestions: selectedQuiz.questionData.length,
       results
-    });
+    };
+    
+    setQuizResults(quizResult);
+
+    // 結果をデータベースに保存
+    try {
+      await saveQuizResults(quizResult);
+    } catch (error) {
+      console.error('結果保存エラー:', error);
+      Alert.alert('警告', '結果の保存に失敗しました。管理システムに反映されない可能性があります。');
+    }
+  };
+
+  // クイズ結果をデータベースに保存
+  const saveQuizResults = async (results: any) => {
+    if (!selectedQuiz) return;
+
+    try {
+      console.log('クイズ結果を保存中...', {
+        quiz_id: selectedQuiz.id,
+        score: results.score,
+        total_questions: results.totalQuestions
+      });
+
+      // テスト用のユーザーID（実際のアプリでは認証システムから取得）
+      const testUserId = '00000000-0000-0000-0000-000000000001';
+
+      // 1. クイズの回答を保存
+      const { data: response, error: responseError } = await supabase
+        .from('quiz_responses')
+        .insert({
+          quiz_id: selectedQuiz.id,
+          user_id: testUserId,
+          answers: selectedAnswers,
+          score: results.score,
+          completed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (responseError) {
+        console.error('回答保存エラー:', responseError);
+        throw new Error(`回答保存エラー: ${responseError.message}`);
+      }
+
+      console.log('回答が保存されました:', response.id);
+
+      // 2. クイズ割り当てのステータスを更新
+      const { error: assignmentError } = await supabase
+        .from('quiz_assignments')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          score: results.score
+        })
+        .eq('quiz_id', selectedQuiz.id)
+        .eq('user_id', testUserId);
+
+      if (assignmentError) {
+        console.warn('割り当て更新エラー（無視）:', assignmentError);
+        // 割り当ての更新に失敗しても回答の保存は成功しているので続行
+      } else {
+        console.log('クイズ割り当てが更新されました');
+      }
+
+      // 3. 管理システム用のAPIにも送信（Webアプリと連携）
+      try {
+        const webApiResponse = await fetch('http://localhost:3000/api/quizzes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            quiz_id: selectedQuiz.id,
+            user_id: testUserId,
+            answers: selectedAnswers,
+            score: results.score,
+            completed_at: new Date().toISOString()
+          })
+        });
+
+        if (webApiResponse.ok) {
+          console.log('Web APIにも結果が送信されました');
+        } else {
+          console.warn('Web API送信エラー:', webApiResponse.status);
+        }
+      } catch (webApiError) {
+        console.warn('Web API送信エラー（無視）:', webApiError);
+        // Web APIの送信に失敗してもローカルDBへの保存は成功しているので続行
+      }
+
+      console.log('クイズ結果の保存が完了しました');
+      
+    } catch (error) {
+      console.error('結果保存エラー:', error);
+      throw error;
+    }
   };
 
   // クイズをリセット
