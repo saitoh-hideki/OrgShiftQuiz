@@ -1,7 +1,50 @@
+'use client'
+
 import Link from 'next/link'
 import { BarChart3, BookOpen, MessageSquare, Settings, Users } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 export default function HomePage() {
+  const [systemStats, setSystemStats] = useState({
+    activeQuizzes: 0,
+    avgResponseRate: 0,
+    pendingApproval: 0,
+    criticalItems: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchSystemStats = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/dashboard?company_id=00000000-0000-0000-0000-000000000001')
+        
+        if (!response.ok) {
+          throw new Error('システム状態の取得に失敗しました')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setSystemStats({
+            activeQuizzes: data.data.stats.activeQuizzes || 0,
+            avgResponseRate: data.data.stats.avgResponseRate || 0,
+            pendingApproval: data.data.stats.pendingApproval || 0,
+            criticalItems: data.data.stats.criticalItems || 0
+          })
+        }
+      } catch (err) {
+        console.error('システム状態取得エラー:', err)
+        setError(err instanceof Error ? err.message : 'データの取得に失敗しました')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSystemStats()
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -115,24 +158,34 @@ export default function HomePage() {
         {/* システム状態表示 */}
         <div className="mt-12 bg-white rounded-xl p-6 shadow-lg">
           <h3 className="text-lg font-semibold mb-4">システム状態</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">12</div>
-              <div className="text-sm text-gray-600">配信中</div>
+          {isLoading ? (
+            <div className="text-center py-4">
+              <div className="text-gray-500">読み込み中...</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">85%</div>
-              <div className="text-sm text-gray-600">平均回答率</div>
+          ) : error ? (
+            <div className="text-center py-4">
+              <div className="text-red-500 text-sm">{error}</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">3</div>
-              <div className="text-sm text-gray-600">承認待ち</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{systemStats.activeQuizzes}</div>
+                <div className="text-sm text-gray-600">配信中</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{systemStats.avgResponseRate}%</div>
+                <div className="text-sm text-gray-600">平均回答率</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{systemStats.pendingApproval}</div>
+                <div className="text-sm text-gray-600">承認待ち</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{systemStats.criticalItems}</div>
+                <div className="text-sm text-gray-600">要注意項目</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">2</div>
-              <div className="text-sm text-gray-600">要注意項目</div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
