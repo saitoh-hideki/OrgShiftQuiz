@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowLeft, Search, Filter, Eye, Edit, Trash2, BarChart3, Users, Clock, CheckCircle, AlertTriangle, Play, Pause, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Search, Filter, Eye, Edit, Trash2, BarChart3, Users, Clock, CheckCircle, AlertTriangle, Play, Pause, CheckCircle2, XCircle, X, ArrowLeft } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import CoolHeader from '@/components/CoolHeader'
 
 interface Quiz {
   id: string
@@ -406,12 +407,12 @@ export default function QuizzesPage() {
 
   if (loading && quizzes.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-[#F0F4FA] p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-gray-600">クイズデータを読み込み中...</div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
+              <div className="text-[#64748B]">クイズデータを読み込み中...</div>
             </div>
           </div>
         </div>
@@ -420,21 +421,27 @@ export default function QuizzesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F0F4FA] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション */}
+        <div className="brand-header mb-12 p-8 rounded-[24px] pattern-dots relative overflow-hidden">
+          <Link href="/" className="inline-flex items-center gradient-text-blue-subtitle hover:text-white mb-6 transition-colors duration-200 group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             メインメニューに戻る
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">クイズ管理</h1>
-          <p className="text-gray-600 mt-2">配信済みクイズの一覧と詳細分析</p>
+          <div className="relative z-10 animate-fade-in-up">
+            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+              クイズ管理
+            </h1>
+            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+              配信済みクイズの一覧と詳細分析
+            </p>
+          </div>
         </div>
 
-        {/* Error Display */}
+        {/* 🚀 強化されたError Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 border border-red-200 rounded-[16px] p-4 mb-8 animate-fade-in-up">
             <div className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
               <span className="text-red-800">{error}</span>
@@ -442,61 +449,71 @@ export default function QuizzesPage() {
           </div>
         )}
 
-        {/* Stats */}
+        {/* 🚀 強化されたStats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.1s'}}>
             <div className="flex items-center">
-              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <div className="w-12 h-12 rounded-[16px] icon-bg-unified flex items-center justify-center shadow-soft">
+                <BarChart3 className="h-6 w-6 text-[#2563EB]" />
+              </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-600">総クイズ数</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stats.total}</div>
+                <div className="text-sm text-[#64748B]">総クイズ数</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.2s'}}>
             <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="w-12 h-12 rounded-[16px] icon-bg-unified flex items-center justify-center shadow-soft">
+                <CheckCircle className="h-6 w-6 text-[#10B981]" />
+              </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{stats.active}</div>
-                <div className="text-sm text-gray-600">配信中</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stats.active}</div>
+                <div className="text-sm text-[#64748B]">配信中</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.3s'}}>
             <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
+              <div className="w-12 h-12 rounded-[16px] icon-bg-unified flex items-center justify-center shadow-soft">
+                <Users className="h-6 w-6 text-[#2563EB]" />
+              </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-                <div className="text-sm text-gray-600">完了</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stats.completed}</div>
+                <div className="text-sm text-[#64748B]">完了</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.4s'}}>
             <div className="flex items-center">
-              <Edit className="h-8 w-8 text-gray-600" />
+              <div className="w-12 h-12 rounded-[16px] icon-bg-unified flex items-center justify-center shadow-soft">
+                <Edit className="h-6 w-6 text-[#64748B]" />
+              </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{stats.draft}</div>
-                <div className="text-sm text-gray-600">下書き</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stats.draft}</div>
+                <div className="text-sm text-[#64748B]">下書き</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.5s'}}>
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-orange-600" />
+              <div className="w-12 h-12 rounded-[16px] icon-bg-unified flex items-center justify-center shadow-soft">
+                <Clock className="h-6 w-6 text-[#F59E0B]" />
+              </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
-                <div className="text-sm text-gray-600">承認待ち</div>
+                <div className="text-2xl font-bold text-[#0F172A]">{stats.pending}</div>
+                <div className="text-sm text-[#64748B]">承認待ち</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+        {/* 🚀 強化されたFilters */}
+        <div className="card-enhanced rounded-[20px] shadow-soft border p-6 mb-8 animate-fade-in-up" style={{animationDelay: '0.6s'}}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

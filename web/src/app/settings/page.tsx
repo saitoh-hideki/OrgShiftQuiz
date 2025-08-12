@@ -377,22 +377,28 @@ export default function SettingsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F0F4FA] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション */}
+        <div className="brand-header mb-12 p-8 rounded-[24px] pattern-dots relative overflow-hidden">
+          <Link href="/" className="inline-flex items-center gradient-text-blue-subtitle hover:text-white mb-6 transition-colors duration-200 group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             メインメニューに戻る
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">設定</h1>
-          <p className="text-gray-600 mt-2">権限管理、通知設定、システム管理</p>
+          <div className="relative z-10 animate-fade-in-up">
+            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+              設定
+            </h1>
+            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+              権限管理、通知設定、システム管理
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
+          {/* 🚀 強化されたSidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border">
+            <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.1s'}}>
               <div className="p-6">
                 <nav className="space-y-2">
                   {tabs.map((tab) => {
@@ -401,10 +407,10 @@ export default function SettingsPage() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+                        className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                           activeTab === tab.id
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-[#2563EB] text-white shadow-soft'
+                            : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]'
                         }`}
                       >
                         <Icon className="h-4 w-4 mr-3" />
@@ -417,28 +423,22 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Content */}
+          {/* 🚀 強化されたMain Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {tabs.find(tab => tab.id === activeTab)?.name}
-                </h2>
-              </div>
-              
-              <div className="p-6">
+            <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+              <div className="p-8">
                 {activeTab === 'general' && renderGeneralSettings()}
                 {activeTab === 'permissions' && renderPermissions()}
                 {activeTab === 'notifications' && renderNotifications()}
                 {activeTab === 'security' && renderSecurity()}
                 {activeTab === 'integrations' && renderIntegrations()}
-              </div>
-              
-              <div className="p-6 border-t bg-gray-50 flex justify-end">
-                <button className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  <Save className="h-4 w-4 mr-2" />
-                  設定を保存
-                </button>
+                
+                <div className="mt-8 pt-6 border-t border-[rgba(37,99,235,0.08)]">
+                  <button className="flex items-center px-6 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-all duration-200 font-medium">
+                    <Save className="h-4 w-4 mr-2" />
+                    設定を保存
+                  </button>
+                </div>
               </div>
             </div>
           </div>

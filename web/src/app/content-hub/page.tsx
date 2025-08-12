@@ -911,7 +911,7 @@ export default function ContentHubPage() {
   // 設定未完了の場合の表示
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-[#F0F4FA] p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
@@ -944,31 +944,39 @@ export default function ContentHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F0F4FA] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション */}
+        <div className="brand-header mb-12 p-8 rounded-[24px] pattern-dots relative overflow-hidden">
+          <Link href="/" className="inline-flex items-center gradient-text-blue-subtitle hover:text-white mb-6 transition-colors duration-200 group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             メインメニューに戻る
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">コンテンツハブ</h1>
-          <p className="text-gray-600 mt-2">News・Document・Manualの管理とAIクイズ生成</p>
+          <div className="relative z-10 animate-fade-in-up">
+            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+              コンテンツハブ
+            </h1>
+            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+              News・Document・Manualの管理とAIクイズ生成
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* News Section */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
+          <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+            <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Newspaper className="h-6 w-6 text-blue-600 mr-3" />
-                  <h2 className="text-xl font-semibold text-gray-900">News</h2>
+                  <div className="w-8 h-8 rounded-[16px] icon-bg-unified flex items-center justify-center mr-3 shadow-soft">
+                    <Newspaper className="h-5 w-5 text-[#2563EB]" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-[#0F172A]">News</h2>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setIsRssDialogOpen(true)}
-                    className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                    className="flex items-center px-3 py-2 text-sm font-medium text-[#2563EB] bg-[#EFF6FF] rounded-lg hover:bg-[#DBEAFE] transition-colors duration-200"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     RSS追加
@@ -976,7 +984,7 @@ export default function ContentHubPage() {
                   <button 
                     onClick={handleFetchLatest}
                     disabled={isLoading}
-                    className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="flex items-center px-3 py-2 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors duration-200"
                   >
                     <Download className="h-4 w-4 mr-1" />
                     最新取得
@@ -987,20 +995,24 @@ export default function ContentHubPage() {
             <div className="p-6">
               <div className="space-y-4">
                 {newsArticles.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">記事がありません</p>
+                  <p className="text-[#64748B] text-center py-4">記事がありません</p>
                 ) : (
-                  newsArticles.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
+                  newsArticles.map((item, index) => (
+                    <div 
+                      key={item.id} 
+                      className="bg-white rounded-[16px] p-4 border border-[rgba(37,99,235,0.08)] shadow-soft hover:shadow-hover transition-all duration-200 animate-fade-in-up"
+                      style={{animationDelay: `${0.2 + index * 0.05}s`}}
+                    >
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.title}</h3>
-                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                        <h3 className="font-semibold text-[#0F172A] text-sm leading-tight">{item.title}</h3>
+                        <span className="px-2 py-1 text-xs font-medium bg-[#F1F5F9] text-[#475569] rounded-full">
                           {item.status}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 mb-3">
+                      <p className="text-xs text-[#64748B] mb-3">
                         {item.source_id ? (
                           <span className="flex items-center">
-                            <span className="text-blue-600 font-medium">�� {item.news_sources?.name}</span>
+                            <span className="text-[#2563EB] font-medium">📰 {item.news_sources?.name}</span>
                             <span className="mx-2">•</span>
                             <span>{new Date(item.created_at).toLocaleDateString()}</span>
                           </span>
@@ -1009,8 +1021,8 @@ export default function ContentHubPage() {
                         )}
                       </p>
                       {item.url && (
-                        <p className="text-xs text-gray-500 mb-2">
-                          🔗 <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        <p className="text-xs text-[#64748B] mb-2">
+                          🔗 <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:underline">
                             {item.url.length > 50 ? item.url.substring(0, 50) + '...' : item.url}
                           </a>
                         </p>
@@ -1018,12 +1030,12 @@ export default function ContentHubPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs">
                           {item.status === 'quiz_generated' ? (
-                            <div className="flex items-center text-green-600">
+                            <div className="flex items-center text-[#10B981]">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               クイズ生成済み
                             </div>
                           ) : (
-                            <div className="flex items-center text-gray-500">
+                            <div className="flex items-center text-[#64748B]">
                               <Clock className="h-3 w-3 mr-1" />
                               クイズ未生成
                             </div>
@@ -1033,11 +1045,11 @@ export default function ContentHubPage() {
                           <button 
                             onClick={() => handleGenerateQuiz(item.id)}
                             disabled={isLoading || item.status === 'quiz_generated'}
-                            className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 disabled:opacity-50"
+                            className="px-3 py-1 text-xs font-medium text-[#2563EB] bg-[#EFF6FF] rounded hover:bg-[#DBEAFE] disabled:opacity-50 transition-colors duration-200"
                           >
                             {generatingQuizFor === item.id ? (
                               <div className="flex items-center">
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#2563EB] mr-1"></div>
                                 生成中...
                               </div>
                             ) : item.status === 'quiz_generated' ? (
@@ -1056,16 +1068,18 @@ export default function ContentHubPage() {
           </div>
 
           {/* ドキュメント Section */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
+          <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+            <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <FileText className="h-6 w-6 text-green-600 mr-3" />
-                  <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
+                  <div className="w-8 h-8 rounded-[16px] icon-bg-unified flex items-center justify-center mr-3 shadow-soft">
+                    <FileText className="h-5 w-5 text-[#10B981]" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-[#0F172A]">Documents</h2>
                 </div>
                 <button 
                   onClick={() => setIsPolicyDialogOpen(true)}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100"
+                  className="flex items-center px-3 py-2 text-sm font-medium text-[#10B981] bg-[#ECFDF5] rounded-lg hover:bg-[#D1FAE5] transition-colors duration-200"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Add Document
@@ -1075,17 +1089,21 @@ export default function ContentHubPage() {
             <div className="p-6">
               <div className="space-y-4">
                 {documentItems.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No documents available</p>
+                  <p className="text-[#64748B] text-center py-4">No documents available</p>
                 ) : (
-                  documentItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
+                  documentItems.map((item, index) => (
+                    <div 
+                      key={item.id} 
+                      className="bg-white rounded-[16px] p-4 border border-[rgba(37,99,235,0.08)] shadow-soft hover:shadow-hover transition-all duration-200 animate-fade-in-up"
+                      style={{animationDelay: `${0.4 + index * 0.05}s`}}
+                    >
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.title}</h3>
-                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                        <h3 className="font-semibold text-[#0F172A] text-sm leading-tight">{item.title}</h3>
+                        <span className="px-2 py-1 text-xs font-medium bg-[#F1F5F9] text-[#475569] rounded-full">
                           Draft
                         </span>
                       </div>
-                      <div className="flex items-center text-xs text-gray-600 mb-3">
+                      <div className="flex items-center text-xs text-[#64748B] mb-3">
                         {item.effective_date && (
                           <span>Effective Date: {item.effective_date}</span>
                         )}
@@ -1096,30 +1114,30 @@ export default function ContentHubPage() {
                             href={item.file_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                            className="inline-flex items-center text-xs text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
                           >
                             📄 View File
                           </a>
                           {item.original_filename && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-[#64748B] mt-1">
                               Original filename: {item.original_filename}
                             </p>
                           )}
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-xs text-red-600">
+                        <div className="flex items-center text-xs text-[#EF4444]">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Approval Required
                         </div>
                         <button 
                           onClick={() => handleDocumentQuizGenerate(item.id)}
                           disabled={isLoading}
-                          className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 disabled:opacity-50"
+                          className="px-3 py-1 text-xs font-medium text-[#10B981] bg-[#ECFDF5] rounded hover:bg-[#D1FAE5] disabled:opacity-50 transition-colors duration-200"
                         >
                           {generatingQuizFor === item.id ? (
                             <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600 mr-1"></div>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-[#10B981] mr-1"></div>
                               生成中...
                             </div>
                           ) : (
@@ -1135,16 +1153,18 @@ export default function ContentHubPage() {
           </div>
 
           {/* Manual Section */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
+          <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+            <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <BookOpen className="h-6 w-6 text-orange-600 mr-3" />
-                  <h2 className="text-xl font-semibold text-gray-900">Manual</h2>
+                  <div className="w-8 h-8 rounded-[16px] icon-bg-unified flex items-center justify-center mr-3 shadow-soft">
+                    <BookOpen className="h-5 w-5 text-[#F59E0B]" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-[#0F172A]">Manual</h2>
                 </div>
                 <button 
                   onClick={() => setIsManualDialogOpen(true)}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100"
+                  className="flex items-center px-3 py-2 text-sm font-medium text-[#F59E0B] bg-[#FFFBEB] rounded-lg hover:bg-[#FEF3C7] transition-colors duration-200"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   手入力
@@ -1154,25 +1174,29 @@ export default function ContentHubPage() {
             <div className="p-6">
               <div className="space-y-4">
                 {manualDrafts.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Manual下書きがありません</p>
+                  <p className="text-[#64748B] text-center py-4">Manual下書きがありません</p>
                 ) : (
-                  manualDrafts.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
+                  manualDrafts.map((item, index) => (
+                    <div 
+                      key={item.id} 
+                      className="bg-white rounded-[16px] p-4 border border-[rgba(37,99,235,0.08)] shadow-soft hover:shadow-hover transition-all duration-200 animate-fade-in-up"
+                      style={{animationDelay: `${0.6 + index * 0.05}s`}}
+                    >
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.title}</h3>
-                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                        <h3 className="font-semibold text-[#0F172A] text-sm leading-tight">{item.title}</h3>
+                        <span className="px-2 py-1 text-xs font-medium bg-[#F1F5F9] text-[#475569] rounded-full">
                           下書き
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 mb-3">
+                      <p className="text-xs text-[#64748B] mb-3">
                         設問: {item.question.substring(0, 50)}...
                       </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center text-xs text-gray-500">
+                        <div className="flex items-center text-xs text-[#64748B]">
                           <CheckCircle className="h-3 w-3 mr-1" />
                           手動作成
                         </div>
-                        <button className="px-3 py-1 text-xs font-medium text-orange-600 bg-orange-50 rounded hover:bg-orange-100">
+                        <button className="px-3 py-1 text-xs font-medium text-[#F59E0B] bg-[#FFFBEB] rounded hover:bg-[#FEF3C7] transition-colors duration-200">
                           編集
                         </button>
                       </div>
@@ -1184,39 +1208,39 @@ export default function ContentHubPage() {
           </div>
         </div>
 
-        {/* Summary Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="font-semibold text-gray-900 mb-2">承認待ちコンテンツ</h3>
-            <div className="text-2xl font-bold text-orange-600">
+        {/* 🚀 強化されたSummary Stats */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="card-enhanced rounded-[20px] p-8 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.7s'}}>
+            <h3 className="font-semibold text-[#0F172A] mb-2">承認待ちコンテンツ</h3>
+            <div className="text-2xl font-bold text-[#F59E0B]">
               {newsArticles.filter(a => a.status === 'needs_review').length + 
                documentItems.filter(p => p.status === 'pending_approval').length}
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#64748B]">
               Document: {documentItems.filter(p => p.status === 'pending_approval').length}件, 
               News: {newsArticles.filter(a => a.status === 'needs_review').length}件
             </p>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="font-semibold text-gray-900 mb-2">今月の生成クイズ</h3>
-            <div className="text-2xl font-bold text-blue-600">
+          <div className="card-enhanced rounded-[20px] p-8 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.8s'}}>
+            <h3 className="font-semibold text-[#0F172A] mb-2">今月の生成クイズ</h3>
+            <div className="text-2xl font-bold text-[#2563EB]">
               {newsArticles.filter(a => a.status === 'quiz_generated').length + 
                documentItems.length}
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#64748B]">
               自動生成: {newsArticles.filter(a => a.status === 'quiz_generated').length}件, 
               手動: {manualDrafts.length}件
             </p>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="font-semibold text-gray-900 mb-2">配信待ちTray</h3>
-            <div className="text-2xl font-bold text-green-600">
+          <div className="card-enhanced rounded-[20px] p-8 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.9s'}}>
+            <h3 className="font-semibold text-[#0F172A] mb-2">配信待ちTray</h3>
+            <div className="text-2xl font-bold text-[#10B981]">
               {newsArticles.filter(a => a.status === 'quiz_generated').length + 
                documentItems.length + manualDrafts.length}
             </div>
-            <p className="text-sm text-gray-600">承認済み、配信可能</p>
+            <p className="text-sm text-[#64748B]">承認済み、配信可能</p>
           </div>
         </div>
 

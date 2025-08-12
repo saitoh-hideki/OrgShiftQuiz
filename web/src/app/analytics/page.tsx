@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Download, Filter, BarChart3 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Filter, RefreshCw, Download, ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30')
@@ -93,120 +93,157 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F0F4FA] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション */}
+        <div className="brand-header mb-12 p-8 rounded-[24px] pattern-dots relative overflow-hidden">
+          <Link href="/" className="inline-flex items-center gradient-text-blue-subtitle hover:text-white mb-6 transition-colors duration-200 group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             メインメニューに戻る
           </Link>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">詳細分析</h1>
-              <p className="text-gray-600 mt-2">誤答分析、再出題、理解度レポート</p>
-            </div>
-            <div className="flex items-center space-x-4">
+          <div className="relative z-10 animate-fade-in-up">
+            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+              詳細分析
+            </h1>
+            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+              クイズの詳細な分析レポートとインサイト
+            </p>
+          </div>
+        </div>
+
+        {/* 🚀 強化されたフィルター */}
+        <div className="card-enhanced rounded-[20px] shadow-soft border p-6 mb-8 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-[#64748B]" />
+              <span className="text-sm font-medium text-[#374151]">期間:</span>
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-1 text-sm border border-[#D1D5DB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A]"
               >
                 <option value="7">過去7日</option>
                 <option value="30">過去30日</option>
                 <option value="90">過去90日</option>
+                <option value="365">過去1年</option>
               </select>
-              <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                <Download className="h-4 w-4 mr-2" />
-                レポート出力
-              </button>
             </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-[#374151]">ソース:</span>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="px-3 py-1 text-sm border border-[#D1D5DB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A]"
+              >
+                <option value="all">すべて</option>
+                <option value="news">News</option>
+                <option value="policy">Policy</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+            
+            <button className="flex items-center px-3 py-1 text-sm text-[#2563EB] bg-[#EFF6FF] rounded-lg hover:bg-[#DBEAFE] transition-colors duration-200">
+              <RefreshCw className="h-4 w-4 mr-1" />
+              更新
+            </button>
+            
+            <button className="flex items-center px-3 py-1 text-sm text-[#10B981] bg-[#ECFDF5] rounded-lg hover:bg-[#D1FAE5] transition-colors duration-200">
+              <Download className="h-4 w-4 mr-1" />
+              エクスポート
+            </button>
           </div>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{mockAnalytics.summary.totalResponses}</div>
-                <div className="text-sm text-gray-600">総回答数</div>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-600" />
+        {/* 🚀 強化されたサマリー統計 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#0F172A] mb-1">{mockAnalytics.summary.totalQuizzes}</div>
+              <div className="text-sm text-[#64748B]">総クイズ数</div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-green-600">{mockAnalytics.summary.avgResponseRate}%</div>
-                <div className="text-sm text-gray-600">平均回答率</div>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#0F172A] mb-1">{mockAnalytics.summary.totalResponses}</div>
+              <div className="text-sm text-[#64748B]">総回答数</div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{mockAnalytics.summary.avgScore}点</div>
-                <div className="text-sm text-gray-600">平均スコア</div>
-              </div>
-              <TrendingUp className="h-8 w-8 text-blue-600" />
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#10B981] mb-1">{mockAnalytics.summary.avgResponseRate}%</div>
+              <div className="text-sm text-[#64748B]">平均回答率</div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-red-600">{mockAnalytics.summary.criticalItems}</div>
-                <div className="text-sm text-gray-600">要注意項目</div>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#2563EB] mb-1">{mockAnalytics.summary.avgScore}点</div>
+              <div className="text-sm text-[#64748B]">平均スコア</div>
+            </div>
+          </div>
+          
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#F59E0B] mb-1">+{mockAnalytics.summary.improvementRate}%</div>
+              <div className="text-sm text-[#64748B]">改善率</div>
+            </div>
+          </div>
+          
+          <div className="card-enhanced rounded-[20px] p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.7s'}}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-[#EF4444] mb-1">{mockAnalytics.summary.criticalItems}</div>
+              <div className="text-sm text-[#64748B]">要注意項目</div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Wrong Answers Analysis */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
+          {/* 🚀 強化されたWrong Answers Analysis */}
+          <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.8s'}}>
+            <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">誤答率の高い問題</h2>
-                <button className="text-sm text-blue-600 hover:text-blue-800">
+                <h2 className="text-xl font-semibold text-[#0F172A]">誤答率の高い問題</h2>
+                <button className="text-sm text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200">
                   すべて表示
                 </button>
               </div>
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {mockAnalytics.wrongAnswers.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4">
+                {mockAnalytics.wrongAnswers.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    className="bg-white border border-[rgba(37,99,235,0.08)] rounded-[16px] p-4 shadow-soft hover:shadow-hover transition-all duration-200 animate-fade-in-up"
+                    style={{animationDelay: `${0.9 + index * 0.1}s`}}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 mr-4">
-                        <h3 className="font-semibold text-gray-900 text-sm mb-1">
+                        <h3 className="font-semibold text-[#0F172A] text-sm mb-1">
                           {item.question}
                         </h3>
-                        <p className="text-xs text-gray-600 mb-2">{item.quizTitle}</p>
+                        <p className="text-xs text-[#64748B] mb-2">{item.quizTitle}</p>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          item.source === 'News' ? 'bg-blue-100 text-blue-800' :
-                          item.source === 'Policy' ? 'bg-green-100 text-green-800' :
-                          'bg-orange-100 text-orange-800'
+                          item.source === 'News' ? 'bg-[#EFF6FF] text-[#1E40AF]' :
+                          item.source === 'Policy' ? 'bg-[#ECFDF5] text-[#065F46]' :
+                          'bg-[#FFFBEB] text-[#92400E]'
                         }`}>
                           {item.source}
                         </span>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-red-600">{item.wrongRate}%</div>
-                        <div className="text-xs text-gray-500">{item.wrongAnswers}/{item.totalAnswers}人</div>
+                        <div className="text-lg font-bold text-[#EF4444]">{item.wrongRate}%</div>
+                        <div className="text-xs text-[#64748B]">{item.wrongAnswers}/{item.totalAnswers}人</div>
                       </div>
                     </div>
                     
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="text-xs text-gray-600 mb-1">よくある誤答:</div>
+                    <div className="mt-3 pt-3 border-t border-[rgba(37,99,235,0.08)]">
+                      <div className="text-xs text-[#64748B] mb-1">よくある誤答:</div>
                       <div className="flex flex-wrap gap-1">
                         {item.commonMistakes.map((mistake, idx) => (
-                          <span key={idx} className="px-2 py-1 text-xs bg-red-50 text-red-700 rounded">
+                          <span key={idx} className="px-2 py-1 text-xs bg-[#FEF2F2] text-[#DC2626] rounded-[8px]">
                             {mistake}
                           </span>
                         ))}
@@ -215,15 +252,15 @@ export default function AnalyticsPage() {
                       <div className="flex items-center justify-between mt-3">
                         <div className="text-xs">
                           {item.reissueScheduled ? (
-                            <span className="flex items-center text-orange-600">
+                            <span className="flex items-center text-[#F59E0B]">
                               <RefreshCw className="h-3 w-3 mr-1" />
                               再出題予定
                             </span>
                           ) : (
-                            <span className="text-gray-500">再出題なし</span>
+                            <span className="text-[#64748B]">再出題なし</span>
                           )}
                         </div>
-                        <button className="text-xs text-blue-600 hover:text-blue-800">
+                        <button className="text-xs text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200">
                           詳細分析
                         </button>
                       </div>
@@ -234,38 +271,42 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Performance by Source */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">ソース別パフォーマンス</h2>
+          {/* 🚀 強化されたPerformance by Source */}
+          <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '1.0s'}}>
+            <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
+              <h2 className="text-xl font-semibold text-[#0F172A]">ソース別パフォーマンス</h2>
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {mockAnalytics.performanceBySource.map((item) => (
-                  <div key={item.source} className="border rounded-lg p-4">
+                {mockAnalytics.performanceBySource.map((item, index) => (
+                  <div 
+                    key={item.source} 
+                    className="bg-white border border-[rgba(37,99,235,0.08)] rounded-[16px] p-4 shadow-soft hover:shadow-hover transition-all duration-200 animate-fade-in-up"
+                    style={{animationDelay: `${1.1 + index * 0.1}s`}}
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <span className={`px-3 py-1 text-sm font-medium rounded-full mr-3 ${
-                          item.source === 'News' ? 'bg-blue-100 text-blue-800' :
-                          item.source === 'Policy' ? 'bg-green-100 text-green-800' :
-                          'bg-orange-100 text-orange-800'
+                          item.source === 'News' ? 'bg-[#EFF6FF] text-[#1E40AF]' :
+                          item.source === 'Policy' ? 'bg-[#ECFDF5] text-[#065F46]' :
+                          'bg-[#FFFBEB] text-[#92400E]'
                         }`}>
                           {item.source}
                         </span>
-                        <span className="text-sm text-gray-600">{item.quizzes}件のクイズ</span>
+                        <span className="text-sm text-[#64748B]">{item.quizzes}件のクイズ</span>
                       </div>
                       {getTrendIcon(item.trend)}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <div className="text-gray-600">平均スコア</div>
+                        <div className="text-[#64748B]">平均スコア</div>
                         <div className={`font-semibold ${getScoreColor(item.avgScore)}`}>
                           {item.avgScore}点
                         </div>
                       </div>
                       <div>
-                        <div className="text-gray-600">回答率</div>
+                        <div className="text-[#64748B]">回答率</div>
                         <div className={`font-semibold ${getResponseRateColor(item.responseRate)}`}>
                           {item.responseRate}%
                         </div>
@@ -278,84 +319,75 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Department Performance */}
-        <div className="bg-white rounded-lg shadow-sm border mb-8">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-900">部門別パフォーマンス</h2>
+        {/* 🚀 強化されたRecent Trends */}
+        <div className="card-enhanced rounded-[20px] shadow-soft border p-6 mb-8 animate-fade-in-up" style={{animationDelay: '1.3s'}}>
+          <h2 className="text-xl font-semibold text-[#0F172A] mb-6">最近のトレンド</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {mockAnalytics.recentTrends.map((trend, index) => (
+              <div key={trend.period} className="text-center">
+                <div className="text-sm text-[#64748B] mb-2">{trend.period}</div>
+                <div className="text-2xl font-bold text-[#0F172A] mb-1">{trend.responses}</div>
+                <div className="text-sm text-[#64748B] mb-2">回答数</div>
+                <div className="text-lg font-semibold text-[#2563EB] mb-1">{trend.avgScore}点</div>
+                <div className="text-sm text-[#64748B] mb-2">平均スコア</div>
+                <div className="text-lg font-semibold text-[#10B981] mb-1">{trend.responseRate}%</div>
+                <div className="text-sm text-[#64748B] mb-2">回答率</div>
+                <div className={`text-sm font-medium ${
+                  trend.change.startsWith('+') ? 'text-[#10B981]' : 'text-[#EF4444]'
+                }`}>
+                  {trend.change}
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* 🚀 強化されたDepartment Performance */}
+        <div className="card-enhanced rounded-[20px] shadow-soft border p-6 animate-fade-in-up" style={{animationDelay: '1.4s'}}>
+          <h2 className="text-xl font-semibold text-[#0F172A] mb-6">部門別パフォーマンス</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部門</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">メンバー数</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">回答率</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平均スコア</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">要注意項目</th>
+              <thead>
+                <tr className="border-b border-[rgba(37,99,235,0.08)]">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-[#374151]">部門</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-[#374151]">メンバー数</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-[#374151]">回答率</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-[#374151]">平均スコア</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-[#374151]">要注意項目</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {mockAnalytics.departmentPerformance.map((dept) => (
-                  <tr key={dept.department} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{dept.department}</td>
-                    <td className="px-6 py-4 text-gray-600">{dept.members}名</td>
-                    <td className="px-6 py-4">
-                      <span className={`font-semibold ${getResponseRateColor(dept.responseRate)}`}>
+              <tbody>
+                {mockAnalytics.departmentPerformance.map((dept, index) => (
+                  <tr 
+                    key={dept.department} 
+                    className="border-b border-[rgba(37,99,235,0.08)] hover:bg-[#F8FAFC] transition-colors duration-200 animate-fade-in-up"
+                    style={{animationDelay: `${1.5 + index * 0.1}s`}}
+                  >
+                    <td className="py-3 px-4 text-sm font-medium text-[#0F172A]">{dept.department}</td>
+                    <td className="py-3 px-4 text-sm text-center text-[#64748B]">{dept.members}名</td>
+                    <td className="py-3 px-4 text-sm text-center">
+                      <span className={`font-medium ${getResponseRateColor(dept.responseRate)}`}>
                         {dept.responseRate}%
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`font-semibold ${getScoreColor(dept.avgScore)}`}>
+                    <td className="py-3 px-4 text-sm text-center">
+                      <span className={`font-medium ${getScoreColor(dept.avgScore)}`}>
                         {dept.avgScore}点
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      {dept.criticalItems > 0 ? (
-                        <span className="flex items-center text-red-600">
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          {dept.criticalItems}件
-                        </span>
-                      ) : (
-                        <span className="text-green-600">なし</span>
-                      )}
+                    <td className="py-3 px-4 text-sm text-center">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        dept.criticalItems === 0 ? 'bg-[#ECFDF5] text-[#065F46]' :
+                        dept.criticalItems <= 2 ? 'bg-[#FFFBEB] text-[#92400E]' :
+                        'bg-[#FEF2F2] text-[#DC2626]'
+                      }`}>
+                        {dept.criticalItems}件
+                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Recent Trends */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-900">週別トレンド</h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {mockAnalytics.recentTrends.map((trend) => (
-                <div key={trend.period} className="text-center">
-                  <div className="text-sm text-gray-600 mb-2">{trend.period}</div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="text-lg font-bold text-blue-600">{trend.responses}</div>
-                      <div className="text-xs text-gray-500">回答数</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-green-600">{trend.avgScore}点</div>
-                      <div className="text-xs text-gray-500">平均スコア</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-orange-600">{trend.responseRate}%</div>
-                      <div className="text-xs text-gray-500">回答率</div>
-                    </div>
-                    <div className="text-xs font-medium text-gray-700">
-                      前週比: {trend.change}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>

@@ -311,27 +311,33 @@ export default function DispatchBuilderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#F0F4FA] p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション */}
+        <div className="brand-header mb-12 p-8 rounded-[24px] pattern-dots relative overflow-hidden">
+          <Link href="/" className="inline-flex items-center gradient-text-blue-subtitle hover:text-white mb-6 transition-colors duration-200 group">
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             メインメニューに戻る
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">配信ビルダー</h1>
-          <p className="text-gray-600 mt-2">クイズの束ね、セグメント設定、配信管理</p>
+          <div className="relative z-10 animate-fade-in-up">
+            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+              配信ビルダー
+            </h1>
+            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+              クイズの束ね、セグメント設定、配信管理
+            </p>
+          </div>
         </div>
 
         {/* 設定未完了の場合の表示 */}
         {!isConfigured ? (
-          <div className="text-center py-12">
+          <div className="card-enhanced rounded-[20px] p-12 text-center animate-fade-in-up">
             <div className="text-red-600 mb-4">
               <Settings className="h-16 w-16 mx-auto" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">設定が必要です</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-xl font-semibold text-[#0F172A] mb-2">設定が必要です</h2>
+            <p className="text-[#64748B] mb-4">{error}</p>
+            <p className="text-sm text-[#64748B]">
               環境変数 NEXT_PUBLIC_SUPABASE_URL と NEXT_PUBLIC_SUPABASE_ANON_KEY を設定してください
             </p>
           </div>
@@ -341,7 +347,7 @@ export default function DispatchBuilderPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Error/Success Messages */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 rounded-[16px] p-4 animate-fade-in-up">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <div className="h-5 w-5 text-red-400">⚠️</div>
@@ -352,7 +358,7 @@ export default function DispatchBuilderPage() {
                     <div className="ml-auto pl-3">
                       <button
                         onClick={() => setError(null)}
-                        className="text-red-400 hover:text-red-600"
+                        className="text-red-400 hover:text-red-600 transition-colors duration-200"
                       >
                         ✕
                       </button>
@@ -362,7 +368,7 @@ export default function DispatchBuilderPage() {
               )}
 
               {successMessage && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-green-50 border border-green-200 rounded-[16px] p-4 animate-fade-in-up">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <div className="h-5 w-5 text-green-400">✅</div>
@@ -373,7 +379,7 @@ export default function DispatchBuilderPage() {
                     <div className="ml-auto pl-3">
                       <button
                         onClick={() => setSuccessMessage(null)}
-                        className="text-green-400 hover:text-green-600"
+                        className="text-green-400 hover:text-green-600 transition-colors duration-200"
                       >
                         ✕
                       </button>
@@ -382,19 +388,19 @@ export default function DispatchBuilderPage() {
                 </div>
               )}
 
-              {/* Quiz Selection */}
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6 border-b">
+              {/* 🚀 強化されたQuiz Selection */}
+              <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+                <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">配信可能なクイズ</h2>
+                    <h2 className="text-xl font-semibold text-[#0F172A]">配信可能なクイズ</h2>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-[#64748B]">
                         {isLoading ? '読み込み中...' : `${availableQuizzes.length}件のクイズ`}
                       </span>
                       <button
                         onClick={loadTrayItems}
                         disabled={isLoading}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                        className="p-1 text-[#64748B] hover:text-[#475569] disabled:opacity-50 transition-colors duration-200"
                         title="更新"
                       >
                         <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -405,43 +411,44 @@ export default function DispatchBuilderPage() {
                 <div className="p-6">
                   {error ? (
                     <div className="text-center py-8">
-                      <div className="text-red-600 mb-2">エラーが発生しました</div>
-                      <div className="text-sm text-gray-600 mb-4">{error}</div>
+                      <div className="text-[#EF4444] mb-2">エラーが発生しました</div>
+                      <div className="text-sm text-[#64748B] mb-4">{error}</div>
                       <button
                         onClick={loadTrayItems}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors duration-200"
                       >
                         再試行
                       </button>
                     </div>
                   ) : isLoading ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                      <div className="text-gray-600">クイズデータを読み込み中...</div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563EB] mx-auto mb-2"></div>
+                      <div className="text-[#64748B]">クイズデータを読み込み中...</div>
                     </div>
                   ) : availableQuizzes.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-[#64748B]">
                       <div className="text-lg mb-2">クイズがありません</div>
                       <div className="text-sm">
                         コンテンツハブでクイズを生成してください
                       </div>
                       <Link 
                         href="/content-hub"
-                        className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="inline-block mt-3 px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors duration-200"
                       >
                         コンテンツハブへ
                       </Link>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {availableQuizzes.map((quiz) => (
+                      {availableQuizzes.map((quiz, index) => (
                         <div 
                           key={quiz.id} 
-                          className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                          className={`bg-white rounded-[16px] p-4 cursor-pointer transition-all duration-200 animate-fade-in-up border ${
                             selectedQuizzes.includes(quiz.id) 
-                              ? 'border-blue-500 bg-blue-50' 
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-[#2563EB] bg-[#EFF6FF] shadow-soft' 
+                              : 'border-[rgba(37,99,235,0.08)] hover:border-[#2563EB] hover:shadow-hover'
                           }`}
+                          style={{animationDelay: `${0.2 + index * 0.05}s`}}
                           onClick={() => toggleQuizSelection(quiz.id)}
                         >
                           <div className="flex items-center justify-between">
@@ -450,23 +457,23 @@ export default function DispatchBuilderPage() {
                                 type="checkbox"
                                 checked={selectedQuizzes.includes(quiz.id)}
                                 onChange={() => toggleQuizSelection(quiz.id)}
-                                className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                className="mr-3 h-4 w-4 text-[#2563EB] focus:ring-[#2563EB] border-[#D1D5DB] rounded"
                               />
                               <div>
-                                <h3 className="font-semibold text-gray-900">{quiz.title}</h3>
-                                <div className="flex items-center mt-1 text-sm text-gray-600">
+                                <h3 className="font-semibold text-[#0F172A]">{quiz.title}</h3>
+                                <div className="flex items-center mt-1 text-sm text-[#64748B]">
                                   <span className={`px-2 py-1 text-xs font-medium rounded-full mr-2 ${
-                                    quiz.source === 'News' ? 'bg-blue-100 text-blue-800' :
-                                    quiz.source === 'Policy' ? 'bg-green-100 text-green-800' :
-                                    'bg-orange-100 text-orange-800'
+                                    quiz.source === 'News' ? 'bg-[#EFF6FF] text-[#1E40AF]' :
+                                    quiz.source === 'Policy' ? 'bg-[#ECFDF5] text-[#065F46]' :
+                                    'bg-[#FFFBEB] text-[#92400E]'
                                   }`}>
                                     {quiz.source}
                                   </span>
                                   <span>{quiz.questions}問 • 約{quiz.estimatedTime}分</span>
                                   {quiz.requiresAttestation && (
-                                    <span className="ml-2 text-xs text-red-600 font-medium">🔒 同意必須</span>
+                                    <span className="ml-2 text-xs text-[#EF4444] font-medium">🔒 同意必須</span>
                                   )}
-                                  <span className="ml-2 text-xs text-gray-500">
+                                  <span className="ml-2 text-xs text-[#64748B]">
                                     {new Date(quiz.created_at).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -480,39 +487,39 @@ export default function DispatchBuilderPage() {
                 </div>
               </div>
 
-              {/* Dispatch Settings */}
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6 border-b">
-                  <h2 className="text-xl font-semibold text-gray-900">配信設定</h2>
+              {/* 🚀 強化されたDispatch Settings */}
+              <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+                <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
+                  <h2 className="text-xl font-semibold text-[#0F172A]">配信設定</h2>
                 </div>
                 <div className="p-6 space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">配信タイトル</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">配信タイトル</label>
                     <input
                       type="text"
                       value={dispatchSettings.title}
                       onChange={(e) => setDispatchSettings(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A] transition-all duration-200"
                       placeholder="例: 8月度 必須研修クイズ"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">回答期限</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">回答期限</label>
                     <input
                       type="date"
                       value={dispatchSettings.deadline}
                       onChange={(e) => setDispatchSettings(prev => ({ ...prev, deadline: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A] transition-all duration-200"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">配信対象</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">配信対象</label>
                     <select
                       value={dispatchSettings.targetSegment}
                       onChange={(e) => setDispatchSettings(prev => ({ ...prev, targetSegment: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A] transition-all duration-200"
                     >
                       {segments.map((segment) => (
                         <option key={segment.id} value={segment.id}>
@@ -528,9 +535,9 @@ export default function DispatchBuilderPage() {
                         type="checkbox"
                         checked={dispatchSettings.requiresAttestation}
                         onChange={(e) => setDispatchSettings(prev => ({ ...prev, requiresAttestation: e.target.checked }))}
-                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="mr-3 h-4 w-4 text-[#2563EB] focus:ring-[#2563EB] border-[#D1D5DB] rounded"
                       />
-                      <label className="text-sm font-medium text-gray-700">同意必須クイズを含む</label>
+                      <label className="text-sm font-medium text-[#374151]">同意必須クイズを含む</label>
                     </div>
                     
                     <div className="flex items-center">
@@ -538,9 +545,9 @@ export default function DispatchBuilderPage() {
                         type="checkbox"
                         checked={dispatchSettings.notificationEnabled}
                         onChange={(e) => setDispatchSettings(prev => ({ ...prev, notificationEnabled: e.target.checked }))}
-                        className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="mr-3 h-4 w-4 text-[#2563EB] focus:ring-[#2563EB] border-[#D1D5DB] rounded"
                       />
-                      <label className="text-sm font-medium text-gray-700">プッシュ通知を送信</label>
+                      <label className="text-sm font-medium text-[#374151]">プッシュ通知を送信</label>
                     </div>
                   </div>
                 </div>
@@ -549,45 +556,45 @@ export default function DispatchBuilderPage() {
 
             {/* Right Column: Preview & Actions */}
             <div className="space-y-6">
-              {/* Preview */}
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6 border-b">
-                  <h2 className="text-xl font-semibold text-gray-900">配信プレビュー</h2>
+              {/* 🚀 強化されたPreview */}
+              <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+                <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
+                  <h2 className="text-xl font-semibold text-[#0F172A]">配信プレビュー</h2>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
                     <div>
-                      <div className="text-sm text-gray-600 mb-1">選択済みクイズ</div>
-                      <div className="text-2xl font-bold text-blue-600">{selectedQuizzes.length}件</div>
+                      <div className="text-sm text-[#64748B] mb-1">選択済みクイズ</div>
+                      <div className="text-2xl font-bold text-[#2563EB]">{selectedQuizzes.length}件</div>
                     </div>
                     
                     <div>
-                      <div className="text-sm text-gray-600 mb-1">総問題数</div>
-                      <div className="text-2xl font-bold text-green-600">{totalQuestions}問</div>
+                      <div className="text-sm text-[#64748B] mb-1">総問題数</div>
+                      <div className="text-2xl font-bold text-[#10B981]">{totalQuestions}問</div>
                     </div>
                     
                     <div>
-                      <div className="text-sm text-gray-600 mb-1">推定所要時間</div>
-                      <div className="text-2xl font-bold text-orange-600">約{estimatedTotalTime}分</div>
+                      <div className="text-sm text-[#64748B] mb-1">推定所要時間</div>
+                      <div className="text-2xl font-bold text-[#F59E0B]">約{estimatedTotalTime}分</div>
                     </div>
                     
                     <div>
-                      <div className="text-sm text-gray-600 mb-1">配信対象</div>
-                      <div className="text-lg font-semibold text-gray-900">
+                      <div className="text-sm text-[#64748B] mb-1">配信対象</div>
+                      <div className="text-lg font-semibold text-[#0F172A]">
                         {segments.find(s => s.id === dispatchSettings.targetSegment)?.name || '未選択'}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-[#64748B]">
                         {segments.find(s => s.id === dispatchSettings.targetSegment)?.count || 0}名
                       </div>
                     </div>
                   </div>
 
                   {selectedQuizData.length > 0 && (
-                    <div className="mt-6 pt-4 border-t">
-                      <div className="text-sm font-medium text-gray-700 mb-2">選択されたクイズ:</div>
+                    <div className="mt-6 pt-4 border-t border-[rgba(37,99,235,0.08)]">
+                      <div className="text-sm font-medium text-[#374151] mb-2">選択されたクイズ:</div>
                       <div className="space-y-2">
                         {selectedQuizData.map((quiz) => (
-                          <div key={quiz.id} className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
+                          <div key={quiz.id} className="text-xs text-[#64748B] p-2 bg-[#F8FAFC] rounded-[8px] border border-[rgba(37,99,235,0.08)]">
                             {quiz.title} ({quiz.questions}問)
                           </div>
                         ))}
@@ -597,49 +604,29 @@ export default function DispatchBuilderPage() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6">
-                  <div className="space-y-3">
-                    <button 
-                      onClick={handlePreview}
-                      disabled={selectedQuizzes.length === 0}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      プレビュー
-                    </button>
-                    
-                    <button 
-                      className="w-full flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                      disabled={selectedQuizzes.length === 0 || !dispatchSettings.title}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      下書き保存
-                    </button>
-                    
-                    <button 
-                      onClick={handleDispatchStart}
-                      disabled={selectedQuizzes.length === 0 || !dispatchSettings.title || !dispatchSettings.deadline || isLoading}
-                      className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center">
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          配信中...
-                        </div>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          配信開始
-                        </>
-                      )}
-                    </button>
-                  </div>
+              {/* 🚀 強化されたActions */}
+              <div className="card-enhanced rounded-[20px] shadow-soft border animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+                <div className="p-6 border-b border-[rgba(37,99,235,0.08)]">
+                  <h2 className="text-xl font-semibold text-[#0F172A]">アクション</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  <button
+                    onClick={handlePreview}
+                    disabled={selectedQuizzes.length === 0}
+                    className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-[#2563EB] rounded-lg hover:bg-[#1D4ED8] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    プレビュー
+                  </button>
                   
-                  <div className="mt-4 pt-4 border-t text-xs text-gray-500">
-                    配信開始後は設定変更できません
-                  </div>
+                  <button
+                    onClick={handleDispatchStart}
+                    disabled={selectedQuizzes.length === 0 || !dispatchSettings.title || !dispatchSettings.deadline}
+                    className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    配信開始
+                  </button>
                 </div>
               </div>
             </div>

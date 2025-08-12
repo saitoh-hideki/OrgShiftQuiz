@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { BarChart3, BookOpen, MessageSquare, Settings, Users } from 'lucide-react'
+import { BarChart3, BookOpen, MessageSquare, Settings, Users, Clock, AlertTriangle } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import CoolHeader from '@/components/CoolHeader'
 
 export default function HomePage() {
   const [systemStats, setSystemStats] = useState({
@@ -45,30 +46,50 @@ export default function HomePage() {
     fetchSystemStats()
   }, [])
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            OrgShift Quiz 管理システム
-          </h1>
-          <p className="text-xl text-gray-600">
-            組織の方針・ニュース・マニュアルをクイズ形式で効果的に配信
-          </p>
-        </header>
+  // スポットライト効果のためのマウス位置追跡
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const cards = document.querySelectorAll('.spotlight')
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        
+        ;(card as HTMLElement).style.setProperty('--mouse-x', `${x}px`)
+        ;(card as HTMLElement).style.setProperty('--mouse-y', `${y}px`)
+      })
+    }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    document.addEventListener('mousemove', handleMouseMove)
+    return () => document.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-[#F0F4FA] p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* 🚀 強化されたヘッダー - ブランドグラデーション（仕様書完全準拠） */}
+        <CoolHeader
+          title="OrgShift Quiz — 管理者ダッシュボード"
+          subtitle="組織学習を加速させるクイズ配信システム"
+          showBackButton={false}
+          className="header-gradient-cool header-bottom-shadow text-center mb-16"
+        />
+
+        {/* 🚀 強化されたメインカードグリッド（青系統一） */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {/* コンテンツハブ */}
           <Link href="/content-hub" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
-                <h3 className="text-xl font-semibold">コンテンツハブ</h3>
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-content flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <BookOpen className="h-6 w-6 text-[#2563EB]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">コンテンツハブ</h3>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-body-strong mb-6 leading-relaxed">
                 News・Policy・Manualの管理とAIクイズ生成
               </p>
-              <div className="text-blue-600 group-hover:text-blue-800 font-medium">
+              <div className="text-brand-primary group-hover:text-brand-secondary font-medium transition-colors duration-200">
                 管理を開始 →
               </div>
             </div>
@@ -76,63 +97,53 @@ export default function HomePage() {
 
           {/* 配信ビルダー */}
           <Link href="/dispatch-builder" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <MessageSquare className="h-8 w-8 text-green-600 mr-3" />
-                <h3 className="text-xl font-semibold">配信ビルダー</h3>
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-quiz flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <MessageSquare className="h-6 w-6 text-[#10B981]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">配信ビルダー</h3>
               </div>
-              <p className="text-gray-600 mb-4">
-                クイズの束ね、セグメント設定、配信管理
+              <p className="text-body-strong mb-6 leading-relaxed">
+                クイズを束ねて配信スケジュールを設定
               </p>
-              <div className="text-green-600 group-hover:text-green-800 font-medium">
+              <div className="text-[#10B981] group-hover:text-[#059669] font-medium transition-colors duration-200">
                 配信作成 →
-              </div>
-            </div>
-          </Link>
-
-          {/* ダッシュボード */}
-          <Link href="/dashboard" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <BarChart3 className="h-8 w-8 text-purple-600 mr-3" />
-                <h3 className="text-xl font-semibold">ダッシュボード</h3>
-              </div>
-              <p className="text-gray-600 mb-4">
-                配信状況、回答率、正答率の分析
-              </p>
-              <div className="text-purple-600 group-hover:text-purple-800 font-medium">
-                分析表示 →
               </div>
             </div>
           </Link>
 
           {/* クイズ管理 */}
           <Link href="/quizzes" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <Users className="h-8 w-8 text-orange-600 mr-3" />
-                <h3 className="text-xl font-semibold">クイズ管理</h3>
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-dashboard flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <BarChart3 className="h-6 w-6 text-[#8B5CF6]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">クイズ管理</h3>
               </div>
-              <p className="text-gray-600 mb-4">
-                配信済みクイズの一覧と詳細分析
+              <p className="text-body-strong mb-6 leading-relaxed">
+                配信済みクイズの詳細分析と管理
               </p>
-              <div className="text-orange-600 group-hover:text-orange-800 font-medium">
+              <div className="text-[#8B5CF6] group-hover:text-[#7C3AED] font-medium transition-colors duration-200">
                 一覧表示 →
               </div>
             </div>
           </Link>
 
-          {/* 分析 */}
+          {/* 詳細分析 */}
           <Link href="/analytics" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <BarChart3 className="h-8 w-8 text-red-600 mr-3" />
-                <h3 className="text-xl font-semibold">詳細分析</h3>
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-analytics flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <BarChart3 className="h-6 w-6 text-[#EF4444]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">詳細分析</h3>
               </div>
-              <p className="text-gray-600 mb-4">
-                誤答分析、再出題、理解度レポート
+              <p className="text-body-strong mb-6 leading-relaxed">
+                詳細な分析レポートとインサイト
               </p>
-              <div className="text-red-600 group-hover:text-red-800 font-medium">
+              <div className="text-[#EF4444] group-hover:text-[#DC2626] font-medium transition-colors duration-200">
                 分析開始 →
               </div>
             </div>
@@ -140,53 +151,109 @@ export default function HomePage() {
 
           {/* 設定 */}
           <Link href="/settings" className="group">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-center mb-4">
-                <Settings className="h-8 w-8 text-gray-600 mr-3" />
-                <h3 className="text-xl font-semibold">設定</h3>
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-settings flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <Settings className="h-6 w-6 text-[#64748B]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">設定</h3>
               </div>
-              <p className="text-gray-600 mb-4">
-                権限管理、通知設定、システム管理
+              <p className="text-body-strong mb-6 leading-relaxed">
+                システム設定とユーザー管理
               </p>
-              <div className="text-gray-600 group-hover:text-gray-800 font-medium">
+              <div className="text-[#64748B] group-hover:text-[#475569] font-medium transition-colors duration-200">
                 設定変更 →
+              </div>
+            </div>
+          </Link>
+
+          {/* ダッシュボード */}
+          <Link href="/dashboard" className="group">
+            <div className="card-enhanced rounded-2xl p-8 hover-lift border spotlight-enhanced focus-ring-blue animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-2xl icon-bg-dashboard flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
+                  <BarChart3 className="h-6 w-6 text-[#2563EB]" />
+                </div>
+                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">ダッシュボード</h3>
+              </div>
+              <p className="text-body-strong mb-6 leading-relaxed">
+                システム全体の状況とKPI
+              </p>
+              <div className="text-brand-primary group-hover:text-brand-secondary font-medium transition-colors duration-200">
+                詳細表示 →
               </div>
             </div>
           </Link>
         </div>
 
-        {/* システム状態表示 */}
-        <div className="mt-12 bg-white rounded-xl p-6 shadow-lg">
-          <h3 className="text-lg font-semibold mb-4">システム状態</h3>
-          {isLoading ? (
-            <div className="text-center py-4">
-              <div className="text-gray-500">読み込み中...</div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-4">
-              <div className="text-red-500 text-sm">{error}</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{systemStats.activeQuizzes}</div>
-                <div className="text-sm text-gray-600">配信中</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{systemStats.avgResponseRate}%</div>
-                <div className="text-sm text-gray-600">平均回答率</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{systemStats.pendingApproval}</div>
-                <div className="text-sm text-gray-600">承認待ち</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">{systemStats.criticalItems}</div>
-                <div className="text-sm text-gray-600">要注意項目</div>
+        {/* 🚀 強化されたシステム状況（KPI色分け・青系背景） */}
+        {!isLoading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+            <div className="kpi-enhanced kpi-active rounded-2xl p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.7s'}}>
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-2xl icon-bg-content flex items-center justify-center mr-4 shadow-soft">
+                  <BarChart3 className="h-5 w-5 text-[#2563EB]" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-heading-strong">{systemStats.activeQuizzes}</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">配信中</div>
+                </div>
               </div>
             </div>
-          )}
-        </div>
+            
+            <div className="kpi-enhanced kpi-response-rate rounded-2xl p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.8s'}}>
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-2xl icon-bg-quiz flex items-center justify-center mr-4 shadow-soft">
+                  <Users className="h-5 w-5 text-[#10B981]" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-heading-strong">{systemStats.avgResponseRate}%</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">平均回答率</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="kpi-enhanced kpi-pending rounded-2xl p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '0.9s'}}>
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-2xl icon-bg-management flex items-center justify-center mr-4 shadow-soft">
+                  <Clock className="h-5 w-5 text-[#F59E0B]" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-heading-strong">{systemStats.pendingApproval}</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">承認待ち</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="kpi-enhanced kpi-critical rounded-2xl p-6 shadow-soft border animate-fade-in-up" style={{animationDelay: '1.0s'}}>
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-2xl icon-bg-analytics flex items-center justify-center mr-4 shadow-soft">
+                  <AlertTriangle className="h-5 w-5 text-[#EF4444]" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-heading-strong">{systemStats.criticalItems}</div>
+                  <div className="text-xs text-slate-500 uppercase tracking-wide">要注意項目</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🚀 強化されたエラー表示（青系テーマ） */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center animate-fade-in-up" style={{animationDelay: '1.1s'}}>
+            <div className="text-red-800 font-medium mb-2">システム状態の取得に失敗しました</div>
+            <div className="text-sm text-red-600">{error}</div>
+          </div>
+        )}
+
+        {/* 🚀 強化されたローディング表示（青系テーマ） */}
+        {isLoading && (
+          <div className="text-center py-12 animate-fade-in-up" style={{animationDelay: '1.2s'}}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
+            <div className="text-caption-strong">システム状態を取得中...</div>
+          </div>
+        )}
       </div>
     </div>
   )
