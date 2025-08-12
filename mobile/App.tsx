@@ -129,9 +129,21 @@ export default function App() {
           console.log(`クイズ ${quiz.id} の最初の質問:`, questions[0]);
         }
         
+        // 完了状態を確認（quiz_responsesから）
+        const { data: responseData, error: responseCheckError } = await supabase
+          .from('quiz_responses')
+          .select('id, score, completed_at')
+          .eq('quiz_id', quiz.id)
+          .eq('user_id', '00000000-0000-0000-0000-000000000001')
+          .single();
+
+        const isCompleted = !responseCheckError && responseData;
+        
         quizzesWithQuestions.push({
           ...quiz,
-          questions: questions || []
+          questions: questions || [],
+          completed: isCompleted,
+          score: isCompleted ? responseData.score : null
         });
       }
       
@@ -166,10 +178,11 @@ export default function App() {
         source: 'Quiz', // 配信ビルダーで作成されたクイズ
         deadline: quiz.deadline,
         questions: quiz.questions?.length || 0,
-        completed: false, // 完了状態は後で実装
+        completed: quiz.completed, // 完了状態は後で実装
         requiresAttestation: quiz.requires_attestation,
         created_at: quiz.created_at,
-        questionData: quiz.questions || [] // 質問データを追加
+        questionData: quiz.questions || [], // 質問データを追加
+        score: quiz.score // スコアを追加
       }));
       
       setQuizzes(formattedQuizzes);
@@ -213,6 +226,20 @@ export default function App() {
     }
 
     try {
+      // 既に完了しているかチェック
+      const testUserId = '00000000-0000-0000-0000-000000000001';
+      const { data: existingResponse, error: checkError } = await supabase
+        .from('quiz_responses')
+        .select('*')
+        .eq('quiz_id', selectedQuiz.id)
+        .eq('user_id', testUserId)
+        .single();
+
+      if (existingResponse && !checkError) {
+        Alert.alert('完了済み', 'このクイズは既に完了しています');
+        return;
+      }
+
       // クイズ割り当てレコードを作成
       await createQuizAssignment();
       
@@ -360,6 +387,7 @@ export default function App() {
         .insert({
           quiz_id: selectedQuiz.id,
           user_id: testUserId,
+          company_id: TEST_COMPANY_ID,
           answers: selectedAnswers,
           score: results.score,
           completed_at: new Date().toISOString()
@@ -392,7 +420,16 @@ export default function App() {
         console.log('クイズ割り当てが更新されました');
       }
 
-      // 3. 管理システム用のAPIにも送信（Webアプリと連携）
+      // 3. 完了状態を更新
+      setQuizzes(prevQuizzes => 
+        prevQuizzes.map(quiz => 
+          quiz.id === selectedQuiz.id 
+            ? { ...quiz, completed: true }
+            : quiz
+        )
+      );
+
+      // 4. 管理システム用のAPIにも送信（Webアプリと連携）
       try {
         const webApiResponse = await fetch('http://localhost:3000/api/quizzes', {
           method: 'POST',
@@ -534,7 +571,12 @@ export default function App() {
               
               <View style={styles.cardFooter}>
                 {quiz.completed ? (
-                  <Text style={styles.completedText}>✅ 完了</Text>
+                  <View style={styles.completedInfo}>
+                    <Text style={styles.completedText}>✅ 完了</Text>
+                    {quiz.score !== null && (
+                      <Text style={styles.scoreText}>{quiz.score}点</Text>
+                    )}
+                  </View>
                 ) : (
                   <Text style={styles.pendingText}>⏳ 未回答</Text>
                 )}
@@ -879,7 +921,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
+  completedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   completedText: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  scoreText: {
     fontSize: 14,
     color: '#059669',
     fontWeight: '600',
