@@ -320,10 +320,10 @@ export default function DispatchBuilderPage() {
             メインメニューに戻る
           </Link>
           <div className="relative z-10 animate-fade-in-up">
-            <h1 className="text-[32px] font-bold gradient-text-blue-light mb-3 tracking-[-0.5%] drop-shadow-sm">
+            <h1 className="text-[32px] font-bold text-blue-clean mb-3 tracking-[-0.5%] drop-shadow-sm">
               配信ビルダー
             </h1>
-            <p className="text-[14px] gradient-text-blue-subtitle leading-[1.6]">
+            <p className="text-[14px] text-blue-clean-subtitle leading-[1.6]">
               クイズの束ね、セグメント設定、配信管理
             </p>
           </div>

@@ -103,7 +103,12 @@
   --gradient-text-blue-alt: linear-gradient(90deg, #93C5FD 0%, #60A5FA 50%, #3B82F6 100%);
   --gradient-text-blue-light: linear-gradient(135deg, #93C5FD 0%, #60A5FA 50%, #3B82F6 100%);
   --gradient-text-blue-subtitle: linear-gradient(135deg, #7DD3FC 0%, #38BDF8 50%, #0EA5E9 100%);
-
+  
+  /* 🚀 新規追加: 綺麗な青の単色テキスト用クラス */
+  --text-blue-clean: #2563EB;
+  --text-blue-clean-light: #3B82F6;
+  --text-blue-clean-subtitle: #60A5FA;
+  
   /* 🚀 新規追加: かっこいいヘッダー用カラーパレット（仕様書準拠） */
   --header-gradient-top: #B3E5FC;
   --header-gradient-bottom: #1E88E5;
@@ -265,6 +270,45 @@ body {
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
+}
+
+/* 🚀 新規追加: brand-header内での綺麗な青の単色テキスト優先表示 */
+.brand-header h1.text-blue-clean {
+  color: var(--text-blue-clean) !important;
+  text-shadow: none !important;
+}
+
+.brand-header h1.text-blue-clean-light {
+  color: var(--text-blue-clean-light) !important;
+  text-shadow: none !important;
+}
+
+.brand-header p.text-blue-clean-subtitle {
+  color: var(--text-blue-clean-subtitle) !important;
+  text-shadow: none !important;
+}
+
+.brand-header a.text-blue-clean-subtitle {
+  color: var(--text-blue-clean-subtitle) !important;
+  text-shadow: none !important;
+}
+
+/* 🚀 最高レベルの優先順位で綺麗な青の単色テキストを適用 */
+div.brand-header h1.text-blue-clean,
+div.brand-header h1.text-blue-clean-light,
+div.brand-header p.text-blue-clean-subtitle,
+div.brand-header a.text-blue-clean-subtitle {
+  color: var(--text-blue-clean) !important;
+  text-shadow: none !important;
+}
+
+div.brand-header h1.text-blue-clean-light {
+  color: var(--text-blue-clean-light) !important;
+}
+
+div.brand-header p.text-blue-clean-subtitle,
+div.brand-header a.text-blue-clean-subtitle {
+  color: var(--text-blue-clean-subtitle) !important;
 }
 
 /* 強化されたカード - 青系強化（仕様書完全準拠） */
@@ -584,6 +628,19 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* 🚀 新規追加: 綺麗な青の単色テキスト用クラス */
+.text-blue-clean {
+  color: var(--text-blue-clean);
+}
+
+.text-blue-clean-light {
+  color: var(--text-blue-clean-light);
+}
+
+.text-blue-clean-subtitle {
+  color: var(--text-blue-clean-subtitle);
 }
 
 /* 🚀 新規追加: ヘッダー可読性向上のための色 */

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     console.log('Quizzes found:', quizzes?.length || 0)
 
     // クイズの詳細情報と統計を計算（シンプル版）
-    const detailedQuizzes = quizzes?.map(quiz => {
+    const detailedQuizzes = await Promise.all(quizzes?.map(async (quiz) => {
       // ソースタイプを決定
       const sourceType = quiz.source_mix && quiz.source_mix.length > 0 
         ? quiz.source_mix[0].charAt(0).toUpperCase() + quiz.source_mix[0].slice(1)
@@ -78,6 +78,67 @@ export async function GET(request: NextRequest) {
       if (quiz.questions && quiz.questions <= 3) difficulty = 'easy'
       else if (quiz.questions && quiz.questions >= 5) difficulty = 'hard'
 
+      // クイズの回答統計を取得
+      let totalResponses = 0
+      let responseRate = 0
+      let avgScore = 0
+      let totalAssignments = 0
+      let latestResponseAt = null
+
+      try {
+        // クイズ割り当て数を取得
+        const { count: assignmentCount } = await supabase
+          .from('quiz_assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('quiz_id', quiz.id)
+        
+        totalAssignments = assignmentCount || 0
+
+        // クイズ回答数を取得
+        const { count: responseCount } = await supabase
+          .from('quiz_responses')
+          .select('*', { count: 'exact', head: true })
+          .eq('quiz_id', quiz.id)
+        
+        totalResponses = responseCount || 0
+
+        // 回答率を計算
+        if (totalAssignments > 0) {
+          responseRate = Math.round((totalResponses / totalAssignments) * 100)
+        }
+
+        // 平均スコアを計算
+        if (totalResponses > 0) {
+          const { data: responses } = await supabase
+            .from('quiz_responses')
+            .select('score')
+            .eq('quiz_id', quiz.id)
+            .not('score', 'is', null)
+          
+          if (responses && responses.length > 0) {
+            const totalScore = responses.reduce((sum, r) => sum + (r.score || 0), 0)
+            avgScore = Math.round(totalScore / responses.length)
+          }
+        }
+
+        // 最新の回答日時を取得
+        if (totalResponses > 0) {
+          const { data: latestResponse } = await supabase
+            .from('quiz_responses')
+            .select('completed_at')
+            .eq('quiz_id', quiz.id)
+            .order('completed_at', { ascending: false })
+            .limit(1)
+          
+          if (latestResponse && latestResponse[0]) {
+            latestResponseAt = latestResponse[0].completed_at
+          }
+        }
+      } catch (error) {
+        console.warn(`Quiz ${quiz.id} statistics calculation error:`, error)
+        // エラーが発生しても基本データは返す
+      }
+
       return {
         id: quiz.id,
         title: quiz.title,
@@ -87,20 +148,20 @@ export async function GET(request: NextRequest) {
         status: quiz.status || 'draft',
         created: quiz.created_at,
         deadline: quiz.deadline,
-        totalResponses: 0, // 一時的に0
-        responseRate: 0,   // 一時的に0
-        avgScore: 0,       // 一時的に0
+        totalResponses: totalResponses,
+        responseRate: responseRate,
+        avgScore: avgScore,
         difficulty: difficulty,
         requiresAttestation: quiz.require_attestation || false,
         targetSegment: quiz.target_segment || 'all',
         notificationEnabled: quiz.notification_enabled !== false,
         publishedAt: quiz.published_at,
         sourceMix: quiz.source_mix || [],
-        latestResponseAt: null,
-        totalAssignments: 0,
-        completedAssignments: 0
+        latestResponseAt: latestResponseAt,
+        totalAssignments: totalAssignments,
+        completedAssignments: totalResponses
       }
-    }) || []
+    }) || [])
 
     // 基本的な統計情報を計算
     const stats = {
@@ -118,7 +179,7 @@ export async function GET(request: NextRequest) {
       quizzes: detailedQuizzes,
       stats: stats,
       count: detailedQuizzes.length,
-      note: '基本データのみ表示中（詳細統計は後で実装）'
+      note: '回答率・平均点・回答数を含む詳細統計情報を表示中'
     })
 
   } catch (error) {
