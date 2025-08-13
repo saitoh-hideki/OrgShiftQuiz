@@ -1089,3 +1089,74 @@ div.brand-header a.text-blue-clean-subtitle {
 .scrollbar-track-gray-100::-webkit-scrollbar-track {
   background: #F3F4F6;
 }
+
+/* クイズ一覧のスクロール機能強化 */
+.quiz-table-wrapper {
+  position: relative;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.quiz-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.quiz-table-body {
+  max-height: 400px !important;
+  min-height: 200px;
+  overflow-y: auto !important;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scroll-behavior: smooth;
+}
+
+.quiz-table-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quiz-table-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.quiz-table-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+
+.quiz-table-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* スクロール表示のローディングアニメーション */
+.quiz-scroll-loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* クイズ一覧の表示制限アニメーション */
+.quiz-limit-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+.quiz-limit-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.quiz-limit-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}

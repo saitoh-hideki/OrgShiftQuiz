@@ -250,6 +250,26 @@ export default function QuizzesPage() {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false)
+  
+  // スクロール表示用の状態
+  const [displayLimit, setDisplayLimit] = useState(3) // 9件のデータでスクロールテストができるように3件に調整
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // スクロールで残りのクイズを表示
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100 // 下端100px手前でトリガー
+    
+    if (isNearBottom && displayLimit < quizzes.length && !isLoadingMore) {
+      setIsLoadingMore(true)
+      // 少し遅延を入れてスムーズな表示にする
+      setTimeout(() => {
+        const newLimit = Math.min(displayLimit + 3, quizzes.length) // 3件ずつ追加
+        setDisplayLimit(newLimit)
+        setIsLoadingMore(false)
+      }, 300)
+    }
+  }
 
   // クイズデータを取得
   const fetchQuizzes = async () => {
@@ -262,10 +282,7 @@ export default function QuizzesPage() {
       if (sourceFilter !== 'all') params.append('source', sourceFilter)
       if (searchTerm) params.append('search', searchTerm)
 
-      console.log('Fetching quizzes with params:', params.toString())
-      
       const response = await fetch(`/api/quizzes?${params.toString()}`)
-      console.log('Response status:', response.status)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -274,7 +291,6 @@ export default function QuizzesPage() {
       }
       
       const data = await response.json()
-      console.log('API Response data:', data)
       
       setQuizzes(data.quizzes || [])
       setStats(data.stats || { total: 0, active: 0, completed: 0, draft: 0, pending: 0 })
@@ -559,24 +575,33 @@ export default function QuizzesPage() {
             <h2 className="text-xl font-semibold text-gray-900">
               クイズ一覧 ({quizzes.length}件)
             </h2>
+
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">クイズ</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ソース</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">回答状況</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成績</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">期限</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {quizzes.map((quiz) => (
-                  <tr key={quiz.id} className="hover:bg-gray-50">
+          <div className="quiz-table-wrapper">
+            {/* 固定ヘッダー */}
+            <div className="quiz-table-header">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">クイズ</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ソース</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">回答状況</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成績</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">期限</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+            
+            {/* スクロール可能なボディ */}
+            <div className="quiz-table-body" onScroll={handleScroll}>
+              <table className="w-full">
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {quizzes.slice(0, displayLimit).map((quiz) => (
+                    <tr key={quiz.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
                         <div className="font-semibold text-gray-900">{quiz.title}</div>
@@ -746,6 +771,10 @@ export default function QuizzesPage() {
               </tbody>
             </table>
           </div>
+        </div>
+          
+          {/* スクロール表示制御 */}
+          
           
           {quizzes.length === 0 && !loading && (
             <div className="p-12 text-center text-gray-500">
