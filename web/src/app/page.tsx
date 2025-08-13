@@ -69,7 +69,7 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto">
         {/* 🚀 強化されたヘッダー - ブランドグラデーション（仕様書完全準拠） */}
         <CoolHeader
-          title="OrgShift Quiz — 管理者ダッシュボード"
+          title="OrgShift Quiz — Main Menu"
           subtitle="組織学習を加速させるクイズ配信システム"
           showBackButton={false}
           className="header-gradient-cool header-bottom-shadow text-center mb-16"

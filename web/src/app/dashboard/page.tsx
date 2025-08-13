@@ -145,7 +145,7 @@ export default function DashboardPage() {
           </Link>
           <div className="relative z-10 animate-fade-in-up">
             <h1 className="text-[32px] font-bold text-blue-clean mb-3 tracking-[-0.5%] drop-shadow-sm">
-              OrgShift Quiz — 管理者ダッシュボード
+              OrgShift Quiz — Dashboard
             </h1>
             <p className="text-[14px] text-blue-clean-subtitle leading-[1.6]">
               組織学習を加速させるクイズ配信システム
