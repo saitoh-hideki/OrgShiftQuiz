@@ -174,14 +174,10 @@ export default function HomePage() {
                 <div className="w-12 h-12 rounded-2xl icon-bg-dashboard flex items-center justify-center mr-4 shadow-soft transition-all duration-200 group-hover:icon-bg-unified-hover">
                   <BarChart3 className="h-6 w-6 text-[#2563EB]" />
                 </div>
-                <h3 className="text-lg font-semibold text-heading-strong tracking-tight">ダッシュボード</h3>
+                <h3 className="font-semibold text-primary-strong text-lg">ダッシュボード</h3>
               </div>
-              <p className="text-body-strong mb-6 leading-relaxed">
-                システム全体の状況とKPI
-              </p>
-              <div className="text-brand-primary group-hover:text-brand-secondary font-medium transition-colors duration-200">
-                詳細表示 →
-              </div>
+              <p className="text-secondary-strong text-base leading-relaxed mb-4 font-medium">システム全体の状況とKPI</p>
+              <span className="text-link-strong text-sm group-hover:underline transition-all duration-200 font-medium">詳細表示 →</span>
             </div>
           </Link>
         </div>

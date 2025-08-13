@@ -440,48 +440,53 @@ export default function DispatchBuilderPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {availableQuizzes.map((quiz, index) => (
-                        <div 
-                          key={quiz.id} 
-                          className={`bg-white rounded-[16px] p-4 cursor-pointer transition-all duration-200 animate-fade-in-up border ${
-                            selectedQuizzes.includes(quiz.id) 
-                              ? 'border-[#2563EB] bg-[#EFF6FF] shadow-soft' 
-                              : 'border-[rgba(37,99,235,0.08)] hover:border-[#2563EB] hover:shadow-hover'
-                          }`}
-                          style={{animationDelay: `${0.2 + index * 0.05}s`}}
-                          onClick={() => toggleQuizSelection(quiz.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={selectedQuizzes.includes(quiz.id)}
-                                onChange={() => toggleQuizSelection(quiz.id)}
-                                className="mr-3 h-4 w-4 text-[#2563EB] focus:ring-[#2563EB] border-[#D1D5DB] rounded"
-                              />
-                              <div>
-                                <h3 className="font-semibold text-[#0F172A]">{quiz.title}</h3>
-                                <div className="flex items-center mt-1 text-sm text-[#64748B]">
-                                  <span className={`px-2 py-1 text-xs font-medium rounded-full mr-2 ${
-                                    quiz.source === 'News' ? 'bg-[#EFF6FF] text-[#1E40AF]' :
-                                    quiz.source === 'Policy' ? 'bg-[#ECFDF5] text-[#065F46]' :
-                                    'bg-[#FFFBEB] text-[#92400E]'
-                                  }`}>
-                                    {quiz.source}
-                                  </span>
-                                  <span>{quiz.questions}問 • 約{quiz.estimatedTime}分</span>
-                                  {quiz.requiresAttestation && (
-                                    <span className="ml-2 text-xs text-[#EF4444] font-medium">🔒 同意必須</span>
-                                  )}
-                                  <span className="ml-2 text-xs text-[#64748B]">
-                                    {new Date(quiz.created_at).toLocaleDateString()}
-                                  </span>
+                      {/* スクロール可能なクイズリスト */}
+                      <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        <div className="space-y-4 pr-2">
+                          {availableQuizzes.map((quiz, index) => (
+                            <div 
+                              key={quiz.id} 
+                              className={`bg-white rounded-[16px] p-4 cursor-pointer transition-all duration-200 animate-fade-in-up border ${
+                                selectedQuizzes.includes(quiz.id) 
+                                  ? 'border-[#2563EB] bg-[#EFF6FF] shadow-soft' 
+                                  : 'border-[rgba(37,99,235,0.08)] hover:border-[#2563EB] hover:shadow-hover'
+                              }`}
+                              style={{animationDelay: `${0.2 + index * 0.05}s`}}
+                              onClick={() => toggleQuizSelection(quiz.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedQuizzes.includes(quiz.id)}
+                                    onChange={() => toggleQuizSelection(quiz.id)}
+                                    className="mr-3 h-4 w-4 text-[#2563EB] focus:ring-[#2563EB] border-[#D1D5DB] rounded"
+                                  />
+                                  <div>
+                                    <h3 className="font-semibold text-[#0F172A]">{quiz.title}</h3>
+                                    <div className="flex items-center mt-1 text-sm text-[#64748B]">
+                                      <span className={`px-2 py-1 text-xs font-medium rounded-full mr-2 ${
+                                        quiz.source === 'News' ? 'bg-[#EFF6FF] text-[#1E40AF]' :
+                                        quiz.source === 'Policy' ? 'bg-[#ECFDF5] text-[#065F46]' :
+                                        'bg-[#FFFBEB] text-[#92400E]'
+                                      }`}>
+                                        {quiz.source}
+                                      </span>
+                                      <span>{quiz.questions}問 • 約{quiz.estimatedTime}分</span>
+                                      {quiz.requiresAttestation && (
+                                        <span className="ml-2 text-xs text-[#EF4444] font-medium">🔒 同意必須</span>
+                                      )}
+                                      <span className="ml-2 text-xs text-[#64748B]">
+                                        {new Date(quiz.created_at).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </div>
